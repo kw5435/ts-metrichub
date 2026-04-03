@@ -3,232 +3,374 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Business App</title>
+<title>MetricHub</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  h1, h2 { color: #333; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  th { background-color: #f4f4f4; }
-  input, select { padding: 5px; margin: 2px 0; width: 90%; }
-  button { padding: 5px 10px; margin: 2px; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f8f8f8; font-size:16px; }
+header { background:#333; color:white; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; }
+header h1 { margin:0; font-size:28px; }
+nav { display:flex; gap:10px; flex-wrap:wrap; }
+nav button, nav .dropdown-btn { background:#555; color:white; border:none; padding:10px 15px; cursor:pointer; font-size:16px; }
+nav button:hover, nav .dropdown-btn:hover { background:#777; }
+.dropdown { position:relative; display:inline-block; }
+.dropdown-content { display:none; position:absolute; background:#fff; min-width:160px; box-shadow:0 8px 16px rgba(0,0,0,0.2); z-index:1; }
+.dropdown-content button { background:#fff; color:#333; width:100%; text-align:left; padding:10px; border:none; cursor:pointer; }
+.dropdown-content button:hover { background:#eee; }
+.dropdown:hover .dropdown-content { display:block; }
+
+section { display:none; padding:20px; max-width:1920px; margin:auto; }
+section.active { display:block; }
+
+h2 { font-size:24px; margin-bottom:15px; }
+h3 { font-size:20px; margin-top:20px; }
+
+label, select, input, button { margin:5px; font-size:14px; }
+select[multiple] { height:120px; }
+
+table { width:100%; border-collapse: collapse; margin-bottom:20px; table-layout: fixed; font-size:14px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:center; word-wrap:break-word; }
+th { background:#f0f0f0; }
+
+canvas { max-width:100%; height:400px; margin-bottom:40px; }
+
+.green { background-color:#a6f3a6; }
+.red { background-color:#f3a6a6; }
+
+@media print { body { font-size:12px; } canvas { height:250px !important; } table { font-size:12px; } }
 </style>
 </head>
 <body>
+<header>
+<h1>MetricHub</h1>
+<nav>
+<button onclick="showTab('dashboard')">Dashboard</button>
+<button onclick="showTab('employee')">Mitarbeiter</button>
+<button onclick="showTab('wizard')">Wizard</button>
+<div class="dropdown">
+  <button class="dropdown-btn">Systemverwaltung</button>
+  <div class="dropdown-content">
+    <button onclick="showTab('adminEmployees')">Mitarbeiterverwaltung</button>
+    <button onclick="showTab('adminKPI')">KPI-Verwaltung</button>
+  </div>
+</div>
+<button onclick="showTab('evaluation')">Auswertung</button>
+<button onclick="exportData()">Datentransfer</button>
+</nav>
+</header>
 
-<h1>Mini Business App</h1>
-
-<section>
-  <h2>Mitarbeiter verwalten</h2>
-  <input type="text" id="employeeName" placeholder="Name">
-  <input type="text" id="employeeBranch" placeholder="Filiale">
-  <button onclick="addEmployee()">Hinzufügen</button>
-
-  <table id="employeeTable">
-    <thead><tr><th>Name</th><th>Filiale</th><th>Aktionen</th></tr></thead>
-    <tbody></tbody>
-  </table>
+<!-- Dashboard -->
+<section id="dashboard" class="active">
+<h2>Dashboard Gesamt-KPI</h2>
+<label for="dashboardYear">Jahr:</label>
+<select id="dashboardYear" onchange="updateDashboard()"></select>
+<label for="kpiSelect">KPIs auswählen:</label>
+<select id="kpiSelect" multiple size="5" onchange="updateDashboard()"></select>
+<canvas id="dashboardChart"></canvas>
 </section>
 
-<section>
-  <h2>Umsatz erfassen</h2>
-  <select id="employeeSelect"></select>
-  <input type="date" id="revenueDate">
-  <input type="number" id="revenue" placeholder="Betrag (€)">
-  <button onclick="addRevenue()">Speichern</button>
-
-  <table id="revenueTable">
-    <thead><tr><th>Datum</th><th>Mitarbeiter</th><th>Betrag (€)</th></tr></thead>
-    <tbody></tbody>
-  </table>
+<!-- Mitarbeiter -->
+<section id="employee">
+<h2>Mitarbeiter KPIs</h2>
+<label for="employeeSelect">Mitarbeiter:</label>
+<select id="employeeSelect" onchange="updateEmployeeKPIs()"></select>
+<label for="employeeYear">Jahr:</label>
+<select id="employeeYear" onchange="updateEmployeeKPIs()"></select>
+<label><input type="checkbox" id="editMode" onchange="toggleEditMode()"> Bearbeitungsmodus</label>
+<div id="employeeKPITable"></div>
+<canvas id="employeeChart"></canvas>
+<button onclick="generateEvaluation()">Auswertung</button>
+<div id="evaluationResult" style="margin-top:20px;"></div>
 </section>
 
-<section>
-  <h2>Monatsübersicht</h2>
-  <table id="monthlyTable">
-    <thead><tr><th>Monat</th><th>Umsatz (€)</th></tr></thead>
-    <tbody></tbody>
-  </table>
+<!-- Wizard -->
+<section id="wizard">
+<h2>KPI Wizard</h2>
+<div id="wizardContainer">
+<label for="wizardEmployee">Mitarbeiter:</label>
+<select id="wizardEmployee"></select>
+<label for="wizardYear">Jahr:</label>
+<select id="wizardYear"></select>
+<label for="wizardMonth">Monat:</label>
+<select id="wizardMonth"></select>
+<div id="wizardKPIs"></div>
+<button onclick="saveWizardData()">Speichern</button>
+</div>
 </section>
 
-<section>
-  <h2>Jahresübersicht</h2>
-  <table id="yearlyTable">
-    <thead><tr><th>Jahr</th><th>Umsatz (€)</th></tr></thead>
-    <tbody></tbody>
-  </table>
+<!-- Admin Mitarbeiter -->
+<section id="adminEmployees">
+<h2>Mitarbeiterverwaltung</h2>
+<input type="text" id="adminEmployeeName" placeholder="Name">
+<input type="text" id="adminEmployeeBranch" placeholder="Filiale">
+<select id="adminEmployeeStatus">
+<option value="aktiv">aktiv</option>
+<option value="inaktiv">inaktiv</option>
+</select>
+<button onclick="addAdminEmployee()">Hinzufügen</button>
+<div id="employeeAdminTable"></div>
 </section>
 
-<section>
-  <h2>Daten exportieren/importieren</h2>
-  <button onclick="exportData()">Exportieren</button>
-  <input type="file" id="importFile">
-  <button onclick="importData()">Importieren</button>
+<!-- Admin KPI -->
+<section id="adminKPI">
+<h2>KPI-Verwaltung</h2>
+<input type="text" id="kpiNameInput" placeholder="KPI Name">
+<input type="number" id="kpiTargetInput" placeholder="Jahresziel">
+<button onclick="addKPI()">Hinzufügen</button>
+<div id="kpiAdminList"></div>
+</section>
+
+<!-- Gesamtauswertung -->
+<section id="evaluation">
+<h2>Gesamtauswertung</h2>
+<button onclick="generateTotalEvaluation()">Gesamtauswertung druckbar</button>
+<div id="totalEvaluationResult" style="margin-top:20px;"></div>
 </section>
 
 <script>
-let employees = [];
-let revenues = [];
+const monthNames=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni",
+"07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
+let employees=[], kpiDefinitions=[];
+let dashboardChart=null, employeeChart=null;
 
-// --- Mitarbeiter ---
-function addEmployee() {
-  const name = document.getElementById('employeeName').value.trim();
-  const branch = document.getElementById('employeeBranch').value.trim();
-  if(!name || !branch) return alert("Name und Filiale erforderlich!");
-  employees.push({ name, branch });
-  document.getElementById('employeeName').value = '';
-  document.getElementById('employeeBranch').value = '';
-  updateEmployeeTable();
+// Navigation
+function showTab(tab){
+['dashboard','employee','wizard','adminEmployees','adminKPI','evaluation'].forEach(id=>document.getElementById(id).classList.remove('active'));
+document.getElementById(tab).classList.add('active');
+}
+
+// LocalStorage
+function saveData(){ localStorage.setItem('metricHubData',JSON.stringify({employees,kpiDefinitions})); }
+function loadData(){ const data=localStorage.getItem('metricHubData'); if(data){ try{ const obj=JSON.parse(data); employees=obj.employees||[]; kpiDefinitions=obj.kpiDefinitions||["Umsatz","Leads","Calls"]; }catch(e){console.warn(e);} }}
+
+// Export
+function exportData(){ const data=JSON.stringify({employees,kpiDefinitions},null,2); const blob=new Blob([data],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="metricHub_data.json"; a.click(); }
+
+// Init
+function init(){
+  loadData();
+  const now=new Date();
+  const yearNow=now.getFullYear();
+  const dashYear=document.getElementById('dashboardYear'); dashYear.innerHTML='';
+  for(let y=yearNow-5;y<=yearNow+1;y++){ const o=document.createElement('option'); o.value=o.textContent=y; if(y===yearNow) o.selected=true; dashYear.appendChild(o); }
+
+  const kpiSelect=document.getElementById('kpiSelect'); kpiSelect.innerHTML=''; kpiDefinitions.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; kpiSelect.appendChild(o); });
+
   updateEmployeeSelect();
-  saveData();
+  updateWizardDropdowns();
+  updateKPIAdminList();
+  updateEmployeeAdminTable();
+  updateDashboard();
+}
+init();
+
+const monthNames=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni",
+"07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
+
+// Dashboard
+function updateDashboard() {
+    const year = document.getElementById('dashboardYear').value;
+    const selectedKPIs = Array.from(document.getElementById('kpiSelect').selectedOptions).map(o=>o.value);
+    const labels = monthNames;
+    const datasets = [];
+    selectedKPIs.forEach(kpi=>{
+        let data = [];
+        employees.forEach(emp=>{
+            const empYear = emp.kpis[year] || {};
+            const kpiData = empYear[kpi] ? empYear[kpi].values : {};
+            for(let m=1;m<=12;m++){
+                data[m-1]=(data[m-1]||0)+(kpiData[m]||0);
+            }
+        });
+        datasets.push({label:kpi, data:data, borderColor=getRandomColor(), fill:false, tension:0.1});
+    });
+    if(dashboardChart) dashboardChart.destroy();
+    const ctx = document.getElementById('dashboardChart').getContext('2d');
+    dashboardChart = new Chart(ctx, {
+        type:'line',
+        data:{labels:labels,datasets:datasets},
+        options:{responsive:true, plugins:{legend:{position:'top'}}}
+    });
 }
 
-function updateEmployeeTable() {
-  const tbody = document.querySelector('#employeeTable tbody');
-  tbody.innerHTML = '';
-  employees.forEach((e, i) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${e.name}</td><td>${e.branch}</td>
-                     <td><button onclick="deleteEmployee(${i})">Löschen</button></td>`;
-    tbody.appendChild(row);
-  });
+// Mitarbeiteransicht
+function updateEmployeeKPIs(){
+    const empIndex=document.getElementById('employeeSelect').selectedIndex;
+    const year=document.getElementById('employeeYear').value;
+    if(empIndex<0) return;
+    const emp=employees[empIndex];
+    if(!emp.kpis[year]) emp.kpis[year]={};
+    const container=document.getElementById('employeeKPITable');
+    container.innerHTML='';
+    let table=document.createElement('table');
+    let html='<tr><th>KPI</th>'+monthNames.map(m=>`<th>${m}</th>`).join('')+'</tr>';
+    kpiDefinitions.forEach(kpi=>{
+        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0, values:{}};
+        html+='<tr><td>'+kpi+'</td>';
+        for(let m=1;m<=12;m++){
+            let val=emp.kpis[year][kpi].values[m]||0;
+            if(document.getElementById('editMode').checked){
+                html+='<td><input type="number" value="'+val+'" onchange="updateEmployeeValue('+empIndex+',\''+year+'\',\''+kpi+'\','+m+',this.value)"></td>';
+            } else {
+                let target=emp.kpis[year][kpi].target;
+                let percent=target?val/target:0;
+                let color=percent>=m/12?'green':'red';
+                html+='<td class="'+color+'">'+val+'</td>';
+            }
+        }
+        html+='</tr>';
+    });
+    table.innerHTML=html;
+    container.appendChild(table);
+    updateEmployeeChart(emp, year);
 }
 
-function deleteEmployee(index) {
-  employees.splice(index, 1);
-  updateEmployeeTable();
-  updateEmployeeSelect();
-  saveData();
+function updateEmployeeValue(empIndex, year, kpi, month, value){
+    employees[empIndex].kpis[year][kpi].values[month]=parseFloat(value)||0;
+    saveData();
+    updateEmployeeKPIs();
 }
 
-function updateEmployeeSelect() {
-  const select = document.getElementById('employeeSelect');
-  select.innerHTML = '';
-  employees.forEach((e, i) => {
-    const option = document.createElement('option');
-    option.value = i;
-    option.textContent = e.name;
-    select.appendChild(option);
-  });
+function toggleEditMode(){
+    updateEmployeeKPIs();
 }
 
-// --- Umsatz ---
-function addRevenue() {
-  const empIndex = document.getElementById('employeeSelect').value;
-  const amount = parseFloat(document.getElementById('revenue').value);
-  const dateInput = document.getElementById('revenueDate').value;
-  if(empIndex === '' || isNaN(amount) || !dateInput) return alert("Mitarbeiter, Betrag und Datum erforderlich!");
-  
-  const date = new Date(dateInput);
-  const formatted = date.toLocaleDateString('de-DE'); // DD.MM.YYYY
-  revenues.push({ date: formatted, employee: employees[empIndex].name, amount });
-  
-  document.getElementById('revenue').value = '';
-  document.getElementById('revenueDate').value = '';
-  updateRevenueTable();
-  updateMonthlyTable();
-  updateYearlyTable();
-  saveData();
+// Wizard
+function updateWizardDropdowns(){
+    const empSel=document.getElementById('wizardEmployee'); empSel.innerHTML='';
+    employees.forEach((e,i)=>{const o=document.createElement('option'); o.value=i; o.textContent=e.name; empSel.appendChild(o);});
+    const yearSel=document.getElementById('wizardYear'); yearSel.innerHTML='';
+    const now=new Date(); for(let y=now.getFullYear()-5;y<=now.getFullYear()+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===now.getFullYear()) o.selected=true; yearSel.appendChild(o);}
+    const monthSel=document.getElementById('wizardMonth'); monthSel.innerHTML='';
+    monthNames.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i+1; o.textContent=m; if(i+1===now.getMonth()+1) o.selected=true; monthSel.appendChild(o);});
+    updateWizardKPIs();
 }
 
-function updateRevenueTable() {
-  const tbody = document.querySelector('#revenueTable tbody');
-  tbody.innerHTML = '';
-  revenues.forEach(r => {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${r.date}</td><td>${r.employee}</td><td>${r.amount.toFixed(2)}</td>`;
-    tbody.appendChild(row);
-  });
+function updateWizardKPIs(){
+    const container=document.getElementById('wizardKPIs'); container.innerHTML='';
+    kpiDefinitions.forEach(kpi=>{
+        container.innerHTML+='<label>'+kpi+' <input type="number" id="wizard_'+kpi+'"></label><br>';
+    });
 }
 
-// --- Monatsübersicht ---
-function updateMonthlyTable() {
-  const tbody = document.querySelector('#monthlyTable tbody');
-  tbody.innerHTML = '';
-  const monthly = {};
-  revenues.forEach(r => {
-    const [day, month, year] = r.date.split('.');
-    const key = `${month}.${year}`;
-    monthly[key] = (monthly[key] || 0) + r.amount;
-  });
-  Object.keys(monthly).sort((a,b)=>{
-    const [m1,y1]=a.split('.').map(Number),[m2,y2]=b.split('.').map(Number);
-    return y1!==y2?y1-y2:m1-m2;
-  }).forEach(month=>{
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${month}</td><td>${monthly[month].toFixed(2)}</td>`;
-    tbody.appendChild(row);
-  });
+function saveWizardData(){
+    const empIndex=document.getElementById('wizardEmployee').value;
+    const year=document.getElementById('wizardYear').value;
+    const month=document.getElementById('wizardMonth').value;
+    const emp=employees[empIndex];
+    if(!emp.kpis[year]) emp.kpis[year]={};
+    kpiDefinitions.forEach(kpi=>{
+        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0, values:{}};
+        const val=parseFloat(document.getElementById('wizard_'+kpi).value)||0;
+        emp.kpis[year][kpi].values[month]=val;
+    });
+    saveData();
+    alert("Daten gespeichert");
 }
 
-// --- Jahresübersicht ---
-function updateYearlyTable() {
-  const tbody = document.querySelector('#yearlyTable tbody');
-  tbody.innerHTML = '';
-  const yearly = {};
-  revenues.forEach(r => {
-    const year = r.date.split('.')[2];
-    yearly[year] = (yearly[year] || 0) + r.amount;
-  });
-  Object.keys(yearly).sort().forEach(year=>{
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${year}</td><td>${yearly[year].toFixed(2)}</td>`;
-    tbody.appendChild(row);
-  });
+// Mitarbeiter Admin
+function addAdminEmployee(){
+    const name=document.getElementById('adminEmployeeName').value.trim();
+    const branch=document.getElementById('adminEmployeeBranch').value.trim();
+    const status=document.getElementById('adminEmployeeStatus').value;
+    if(!name||!branch){alert("Name und Filiale erforderlich");return;}
+    employees.push({name,branch,status,kpis:{}});
+    document.getElementById('adminEmployeeName').value=''; document.getElementById('adminEmployeeBranch').value='';
+    updateEmployeeAdminTable(); updateEmployeeSelect(); updateWizardDropdowns(); saveData();
 }
 
-// --- Daten speichern/laden ---
-function saveData() {
-  localStorage.setItem('employees', JSON.stringify(employees));
-  localStorage.setItem('revenues', JSON.stringify(revenues));
+function updateEmployeeAdminTable(){
+    const c=document.getElementById('employeeAdminTable'); c.innerHTML='';
+    let t=document.createElement('table');
+    let html='<tr><th>Name</th><th>Filiale</th><th>Status</th><th>Löschen</th></tr>';
+    employees.forEach((e,i)=>{
+        html+='<tr><td>'+e.name+'</td><td>'+e.branch+'</td><td><select onchange="updateEmployeeStatus('+i+',this.value)"><option value="aktiv" '+(e.status==='aktiv'?'selected':'')+'>aktiv</option><option value="inaktiv" '+(e.status==='inaktiv'?'selected':'')+'>inaktiv</option></select></td><td><button onclick="deleteEmployee('+i+')">Löschen</button></td></tr>';
+    });
+    t.innerHTML=html; c.appendChild(t);
 }
 
-function loadData() {
-  const emp = JSON.parse(localStorage.getItem('employees'));
-  const rev = JSON.parse(localStorage.getItem('revenues'));
-  if(emp) employees = emp;
-  if(rev) revenues = rev;
-  updateEmployeeTable();
-  updateEmployeeSelect();
-  updateRevenueTable();
-  updateMonthlyTable();
-  updateYearlyTable();
+function updateEmployeeStatus(i,s){employees[i].status=s; saveData(); updateEmployeeSelect(); updateWizardDropdowns();}
+function deleteEmployee(i){employees.splice(i,1); saveData(); updateEmployeeAdminTable(); updateEmployeeSelect(); updateWizardDropdowns();}
+
+// KPI Admin
+function addKPI(){
+    const name=document.getElementById('kpiNameInput').value.trim();
+    const target=parseFloat(document.getElementById('kpiTargetInput').value)||0;
+    if(!name) return;
+    if(!kpiDefinitions.includes(name)) kpiDefinitions.push(name);
+    employees.forEach(emp=>{ for(const year in emp.kpis){ if(!emp.kpis[year][name]) emp.kpis[year][name]={target,values:{}};} });
+    document.getElementById('kpiNameInput').value=''; document.getElementById('kpiTargetInput').value='';
+    updateKPIAdminList(); updateWizardKPIs(); updateEmployeeKPIs(); saveData();
 }
 
-// --- Export / Import ---
-function exportData() {
-  const dataStr = JSON.stringify({ employees, revenues }, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = "data.json";
-  a.click();
+function updateKPIAdminList(){
+    const c=document.getElementById('kpiAdminList'); c.innerHTML='';
+    kpiDefinitions.forEach((k,i)=>{ const div=document.createElement('div'); div.innerHTML=k+' <button onclick="deleteKPI('+i+')">Löschen</button>'; c.appendChild(div);});
+}
+function deleteKPI(i){
+    const kpi=kpiDefinitions[i]; kpiDefinitions.splice(i,1);
+    employees.forEach(e=>{for(const year in e.kpis) delete e.kpis[year][kpi];});
+    updateKPIAdminList(); updateWizardKPIs(); saveData();
 }
 
-function importData() {
-  const file = document.getElementById('importFile').files[0];
-  if(!file) return alert("Datei auswählen!");
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      employees = data.employees || [];
-      revenues = data.revenues || [];
-      updateEmployeeTable();
-      updateEmployeeSelect();
-      updateRevenueTable();
-      updateMonthlyTable();
-      updateYearlyTable();
-      saveData();
-    } catch(err) { alert("Ungültige Datei!"); }
-  };
-  reader.readAsText(file);
+// Mitarbeiter Auswahl
+function updateEmployeeSelect(){
+    const sel=document.getElementById('employeeSelect'); sel.innerHTML='';
+    employees.forEach((e,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=e.name; sel.appendChild(o);});
+    const yearSel=document.getElementById('employeeYear'); yearSel.innerHTML='';
+    const now=new Date(); for(let y=now.getFullYear()-5;y<=now.getFullYear()+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===now.getFullYear()) o.selected=true; yearSel.appendChild(o);}
 }
 
-// --- Initial ---
-loadData();
+// Charts
+function getRandomColor(){ return '#'+Math.floor(Math.random()*16777215).toString(16);}
+function updateEmployeeChart(emp, year){
+    const labels=monthNames;
+    const datasets=[];
+    kpiDefinitions.forEach(kpi=>{
+        if(!emp.kpis[year][kpi]) return;
+        let data=[]; for(let m=1;m<=12;m++){ data.push(emp.kpis[year][kpi].values[m]||0);}
+        datasets.push({label:kpi,data:data,borderColor:getRandomColor(),fill:false,tension:0.1});
+    });
+    const ctx=document.getElementById('employeeChart').getContext('2d');
+    if(employeeChart) employeeChart.destroy();
+    employeeChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,plugins:{legend:{position:'top'}}}});
+}
+
+// Auswertung pro Mitarbeiter
+function generateEvaluation(){
+    const empIndex=document.getElementById('employeeSelect').selectedIndex;
+    const year=document.getElementById('employeeYear').value;
+    if(empIndex<0) return;
+    const emp=employees[empIndex];
+    let html='<table><tr><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr>';
+    kpiDefinitions.forEach(kpi=>{
+        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0,values:{}};
+        let sum=0; for(let m=1;m<=12;m++){ sum+=emp.kpis[year][kpi].values[m]||0;}
+        let percent=emp.kpis[year][kpi].target?Math.round(sum/emp.kpis[year][kpi].target*100):0;
+        let status=percent>=100?'Grün':'Rot';
+        html+='<tr><td>'+kpi+'</td><td>'+emp.kpis[year][kpi].target+'</td><td>'+sum+'</td><td>'+percent+'%</td><td class="'+status.toLowerCase()+'">'+status+'</td></tr>';
+    });
+    html+='</table>';
+    document.getElementById('evaluationResult').innerHTML=html;
+}
+
+// Gesamtauswertung
+function generateTotalEvaluation(){
+    const year=document.getElementById('dashboardYear').value;
+    let html='<table><tr><th>Mitarbeiter</th><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr>';
+    employees.forEach(emp=>{
+        kpiDefinitions.forEach(kpi=>{
+            if(!emp.kpis[year] || !emp.kpis[year][kpi]) return;
+            let sum=0; for(let m=1;m<=12;m++) sum+=emp.kpis[year][kpi].values[m]||0;
+            let percent=emp.kpis[year][kpi].target?Math.round(sum/emp.kpis[year][kpi].target*100):0;
+            let status=percent>=100?'Grün':'Rot';
+            html+='<tr><td>'+emp.name+'</td><td>'+kpi+'</td><td>'+emp.kpis[year][kpi].target+'</td><td>'+sum+'</td><td>'+percent+'%</td><td class="'+status.toLowerCase()+'">'+status+'</td></tr>';
+        });
+    });
+    html+='</table>';
+    document.getElementById('totalEvaluationResult').innerHTML=html;
+}
+
+
 </script>
-
 </body>
 </html>

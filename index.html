@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Business App</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin:0; background:#f2f2f7; }
+header { padding: 1em; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align:center; font-weight:bold; }
+.screen { display:none; padding:1em; }
+.active { display:block; }
+.card { background:#fff; padding:1em; margin:0.5em 0; border-radius:12px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+button { padding:0.8em 1em; border:none; border-radius:12px; background:#007aff; color:#fff; font-size:1em; margin-top:1em; cursor:pointer; width:100%; }
+input, select { padding:0.8em; margin:0.5em 0; width:100%; border-radius:8px; border:1px solid #ccc; }
+.flex { display:flex; justify-content:space-between; align-items:center; }
+.green { color:#28a745; font-weight:bold; }
+.red { color:#dc3545; font-weight:bold; }
+.blue { color:#007aff; font-weight:bold; }
+.orange { color:#ff9900; font-weight:bold; }
+.link { color:#007aff; cursor:pointer; text-decoration:underline; margin-top:0.5em; display:inline-block; }
+table { width:100%; border-collapse: collapse; margin-top:1em; }
+th, td { border:1px solid #ccc; padding:0.5em; text-align:center; }
+</style>
+</head>
+<body>
+
+<header id="header">Dashboard</header>
+
+<!-- Dashboard -->
+<div id="dashboard" class="screen active">
+  <div class="card flex">
+    <div><strong>Gesamtziel</strong></div>
+    <div class="green" id="gesamtUmsatz">0 €</div>
+  </div>
+  <div class="card flex">
+    <div><strong>Filialziel</strong></div>
+    <div class="blue" id="filialUmsatz">0 €</div>
+  </div>
+  <div class="card link" onclick="showScreen('mitarbeiter')">👤 Mitarbeiter verwalten</div>
+  <div class="card link" onclick="showScreen('umsatz')">➕ Umsatz erfassen</div>
+  <div class="card link" onclick="showScreen('ziele')">🎯 Ziele erfassen</div>
+  <div class="card link" onclick="showScreen('monatsuebersicht')">📅 Monatsübersicht</div>
+  <div class="card link" onclick="showScreen('jahresuebersicht')">📊 Jahresübersicht</div>
+  <div class="card link" onclick="showScreen('importExport')">📂 Import / Export</div>
+</div>
+
+<!-- Mitarbeiter verwalten -->
+<div id="mitarbeiter" class="screen">
+  <h3>Mitarbeiter</h3>
+  <input type="text" id="mitarbeiterName" placeholder="Name">
+  <input type="text" id="mitarbeiterFiliale" placeholder="Filiale">
+  <button onclick="addMitarbeiter()">Hinzufügen</button>
+  <table id="mitarbeiterTabelle">
+    <thead><tr><th>Name</th><th>Filiale</th><th>Aktionen</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<!-- Umsatz erfassen -->
+<div id="umsatz" class="screen">
+  <label>Datum</label>
+  <input type="date" id="umsatzDatum">
+  <label>Mitarbeiter</label>
+  <select id="umsatzMitarbeiter"></select>
+  <label>Betrag (€)</label>
+  <input type="number" id="umsatzBetrag">
+  <button onclick="saveUmsatz()">Speichern</button>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<!-- Ziele erfassen -->
+<div id="ziele" class="screen">
+  <label>Monat</label>
+  <select id="zielMonat">
+    <option>Januar</option><option>Februar</option><option>März</option>
+    <option>April</option><option>Mai</option><option>Juni</option>
+    <option>Juli</option><option>August</option><option>September</option>
+    <option>Oktober</option><option>November</option><option>Dezember</option>
+  </select>
+  <label>Mitarbeiter</label>
+  <select id="zielMitarbeiter"></select>
+  <label>Unternehmensziel (€)</label>
+  <input type="number" id="zielUnternehmen">
+  <label>Filialziel (€)</label>
+  <input type="number" id="zielFiliale">
+  <button onclick="saveZiel()">Ziel speichern</button>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<!-- Monatsübersicht -->
+<div id="monatsuebersicht" class="screen">
+  <label>Monat wählen</label>
+  <select id="monatsUebersichtMonat" onchange="updateMonatsuebersicht()">
+    <option>Januar</option><option>Februar</option><option>März</option>
+    <option>April</option><option>Mai</option><option>Juni</option>
+    <option>Juli</option><option>August</option><option>September</option>
+    <option>Oktober</option><option>November</option><option>Dezember</option>
+  </select>
+  <table>
+    <thead>
+      <tr>
+        <th>Mitarbeiter</th>
+        <th>Unternehmensziel</th>
+        <th>Filialziel</th>
+        <th>Aktueller Umsatz</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="monatsUebersichtTabelle"></tbody>
+  </table>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<!-- Jahresübersicht -->
+<div id="jahresuebersicht" class="screen">
+  <table>
+    <thead>
+      <tr>
+        <th>Mitarbeiter</th>
+        <th>Jahresumsatz</th>
+        <th>Jahresziel Unternehmensziel</th>
+        <th>Jahresziel Filialziel</th>
+      </tr>
+    </thead>
+    <tbody id="jahresUebersichtTabelle"></tbody>
+  </table>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<!-- Import / Export -->
+<div id="importExport" class="screen">
+  <h3>Daten exportieren</h3>
+  <button onclick="exportData()">Exportieren</button>
+  <h3>Daten importieren</h3>
+  <input type="file" id="importFile">
+  <button onclick="importData()">Importieren</button>
+  <div class="link" onclick="showScreen('dashboard')">⬅ Zurück</div>
+</div>
+
+<script>
+// Utilities
+const monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const titles={dashboard:'Dashboard',mitarbeiter:'Mitarbeiter verwalten',umsatz:'Umsatz erfassen',ziele:'Ziele erfassen',monatsuebersicht:'Monatsübersicht',jahresuebersicht:'Jahresübersicht',importExport:'Import / Export'};
+  document.getElementById('header').textContent = titles[id];
+  if(id==='dashboard') updateDashboard();
+  if(id==='mitarbeiter') updateMitarbeiterListe();
+  if(id==='umsatz') updateMitarbeiterSelect();
+  if(id==='ziele') updateMitarbeiterSelect();
+  if(id==='monatsuebersicht') updateMonatsuebersicht();
+  if(id==='jahresuebersicht') updateJahresuebersicht();
+}
+
+// Mitarbeiterverwaltung
+function getMitarbeiter(){ return JSON.parse(localStorage.getItem('mitarbeiter')||'[]'); }
+function addMitarbeiter(){
+  const name=document.getElementById('mitarbeiterName').value.trim();
+  const filiale=document.getElementById('mitarbeiterFiliale').value.trim();
+  if(!name){ alert('Name eingeben'); return; }
+  const mitarbeiter=getMitarbeiter();
+  if(mitarbeiter.find(m=>m.name===name)){ alert('Mitarbeiter existiert bereits'); return; }
+  mitarbeiter.push({name,filiale});
+  localStorage.setItem('mitarbeiter',JSON.stringify(mitarbeiter));
+  document.getElementById('mitarbeiterName').value='';
+  document.getElementById('mitarbeiterFiliale').value='';
+  updateMitarbeiterListe();
+}
+function updateMitarbeiterListe(){
+  const mitarbeiter=getMitarbeiter();
+  const tbody=document.querySelector('#mitarbeiterTabelle tbody');
+  tbody.innerHTML='';
+  mitarbeiter.forEach((m,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${m.name}</td><td>${m.filiale}</td>
+      <td><button onclick="deleteMitarbeiter(${i})">Löschen</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function deleteMitarbeiter(index){
+  const mitarbeiter=getMitarbeiter();
+  mitarbeiter.splice(index,1);
+  localStorage.setItem('mitarbeiter',JSON.stringify(mitarbeiter));
+  updateMitarbeiterListe();
+}
+function updateMitarbeiterSelect(){
+  const selects=[document.getElementById('umsatzMitarbeiter'),document.getElementById('zielMitarbeiter')];
+  const mitarbeiter=getMitarbeiter();
+  selects.forEach(sel=>{
+    sel.innerHTML='';
+    mitarbeiter.forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m.name; opt.textContent=m.name; sel.appendChild(opt);
+    });
+  });
+}
+
+// Umsätze speichern
+function saveUmsatz(){
+  const datum=document.getElementById('umsatzDatum').value;
+  const mitarbeiter=document.getElementById('umsatzMitarbeiter').value;
+  const betrag=parseFloat(document.getElementById('umsatzBetrag').value);
+  if(!datum || isNaN(betrag)){ alert('Datum und Betrag erforderlich'); return; }
+  const umsaetze=JSON.parse(localStorage.getItem('umsaetze')||'[]');
+  umsaetze.push({datum,mitarbeiter,betrag});
+  localStorage.setItem('umsaetze',JSON.stringify(umsaetze));
+  alert('Umsatz gespeichert!');
+  document.getElementById('umsatzBetrag').value='';
+}
+
+// Ziele speichern
+function saveZiel(){
+  const monat=document.getElementById('zielMonat').value;
+  const mitarbeiter=document.getElementById('zielMitarbeiter').value;
+  const unternehmensziel=parseFloat(document.getElementById('zielUnternehmen').value);
+  const filialziel=parseFloat(document.getElementById('zielFiliale').value);
+  if(isNaN(unternehmensziel)||isNaN(filialziel)){ alert('Beide Ziele eingeben'); return; }
+  const ziele=JSON.parse(localStorage.getItem('ziele')||'[]');
+  const existingIndex=ziele.findIndex(z=>z.monat===monat && z.mitarbeiter===mitarbeiter);
+  if(existingIndex>=0){ ziele[existingIndex]={monat,mitarbeiter,unternehmensziel,filialziel}; }
+  else{ ziele.push({monat,mitarbeiter,unternehmensziel,filialziel}); }
+  localStorage.setItem('ziele',JSON.stringify(ziele));
+  alert('Ziel gespeichert!');
+  document.getElementById('zielUnternehmen').value='';
+  document.getElementById('zielFiliale').value='';
+}
+
+// Dashboard
+function updateDashboard(){
+  const umsaetze=JSON.parse(localStorage.getItem('umsaetze')||'[]');
+  const ziele=JSON.parse(localStorage.getItem('ziele')||'[]');
+  const mitarbeiter=getMitarbeiter();
+
+  let gesamt=0, filial=0;
+  mitarbeiter.forEach(m=>{
+    const mUmsatz=umsaetze.filter(u=>u.mitarbeiter===m.name).reduce((s,u)=>s+u.betrag,0);
+    const mZiel=ziele.filter(z=>z.mitarbeiter===m.name).reduce((s,z)=>s+z.unternehmensziel,0);
+    const fZiel=ziele.filter(z=>z.mitarbeiter===m.name).reduce((s,z)=>s+z.filialziel,0);
+    gesamt+=mUmsatz;
+    filial+=mUmsatz; // für Filialziel kann hier ggf. noch nach Filiale gefiltert werden
+  });
+  document.getElementById('gesamtUmsatz').textContent=`${gesamt} €`;
+  document.getElementById('filialUmsatz').textContent=`${filial} €`;
+}
+
+// Monatsübersicht
+function updateMonatsuebersicht(){
+  const monat=document.getElementById('monatsUebersichtMonat').value;
+  const umsaetze=JSON.parse(localStorage.getItem('umsaetze')||'[]');
+  const ziele=JSON.parse(localStorage.getItem('ziele')||'[]');
+  const mitarbeiter=getMitarbeiter();
+  const tbody=document.getElementById('monatsUebersichtTabelle');
+  tbody.innerHTML='';
+  const now=new Date();
+  const monthIndex=monthNames.indexOf(monat);
+
+  mitarbeiter.forEach(m=>{
+    const mUmsaetze=umsaetze.filter(u=>{
+      const d=new Date(u.datum); return d.getMonth()===monthIndex && u.mitarbeiter===m.name;
+    });
+    const latestUmsatz=mUmsaetze.sort((a,b)=>new Date(b.datum)-new Date(a.datum))[0];
+    const mZiel=ziele.find(z=>z.mitarbeiter===m.name && z.monat===monat);
+    const unternehmensziel=mZiel?mZiel.unternehmensziel:0;
+    const filialziel=mZiel?mZiel.filialziel:0;
+    let status='Keine Meldung';
+    if(latestUmsatz){
+      // Endergebnisprüfung: 3 Tage vor Monatsende
+      const lastDay=new Date(now.getFullYear(), monthIndex+1,0);
+      const warningDate=new Date(lastDay); warningDate.setDate(lastDay.getDate()-3);
+      const latestDate=new Date(latestUmsatz.datum);
+      if(latestDate>=warningDate) status='Endergebnis gemeldet';
+      else status='Zwischenstand / Rückfrage nötig';
+    }
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${m.name}</td>
+      <td>${unternehmensziel}</td>
+      <td>${filialziel}</td>
+      <td>${latestUmsatz?latestUmsatz.betrag:0}</td>
+      <td class="${status.includes('Endergebnis')?'green':status.includes('Zwischenstand')?'orange':'red'}">${status}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// Jahresübersicht
+function updateJahresuebersicht(){
+  const umsaetze=JSON.parse(localStorage.getItem('umsaetze')||'[]');
+  const ziele=JSON.parse(localStorage.getItem('ziele')||'[]');
+  const mitarbeiter=getMitarbeiter();
+  const tbody=document.getElementById('jahresUebersichtTabelle');
+  tbody.innerHTML='';
+  mitarbeiter.forEach(m=>{
+    const mUmsatz=umsaetze.filter(u=>u.mitarbeiter===m.name).reduce((s,u)=>s+u.betrag,0);
+    const unternehmensziel=ziele.filter(z=>z.mitarbeiter===m.name).reduce((s,z)=>s+z.unternehmensziel,0);
+    const filialziel=ziele.filter(z=>z.mitarbeiter===m.name).reduce((s,z)=>s+z.filialziel,0);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${m.name}</td><td>${mUmsatz}</td><td>${unternehmensziel}</td><td>${filialziel}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// Import / Export
+function exportData(){
+  const data={
+    mitarbeiter:getMitarbeiter(),
+    umsaetze:JSON.parse(localStorage.getItem('umsaetze')||'[]'),
+    ziele:JSON.parse(localStorage.getItem('ziele')||'[]')
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='mini-business-daten.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(){
+  const file=document.getElementById('importFile').files[0];
+  if(!file){ alert('Bitte Datei auswählen'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      //

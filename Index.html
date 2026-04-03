@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Business App</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  h1, h2 { color: #333; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  th { background-color: #f4f4f4; }
+  input, select { padding: 5px; margin: 2px 0; width: 90%; }
+  button { padding: 5px 10px; margin: 2px; }
+</style>
+</head>
+<body>
+
+<h1>Mini Business App</h1>
+
+<section>
+  <h2>Mitarbeiter verwalten</h2>
+  <input type="text" id="employeeName" placeholder="Name">
+  <input type="text" id="employeeBranch" placeholder="Filiale">
+  <button onclick="addEmployee()">Hinzufügen</button>
+
+  <table id="employeeTable">
+    <thead><tr><th>Name</th><th>Filiale</th><th>Aktionen</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Umsatz erfassen</h2>
+  <select id="employeeSelect"></select>
+  <input type="date" id="revenueDate">
+  <input type="number" id="revenue" placeholder="Betrag (€)">
+  <button onclick="addRevenue()">Speichern</button>
+
+  <table id="revenueTable">
+    <thead><tr><th>Datum</th><th>Mitarbeiter</th><th>Betrag (€)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Monatsübersicht</h2>
+  <table id="monthlyTable">
+    <thead><tr><th>Monat</th><th>Umsatz (€)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Jahresübersicht</h2>
+  <table id="yearlyTable">
+    <thead><tr><th>Jahr</th><th>Umsatz (€)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Daten exportieren/importieren</h2>
+  <button onclick="exportData()">Exportieren</button>
+  <input type="file" id="importFile">
+  <button onclick="importData()">Importieren</button>
+</section>
+
+<script>
+let employees = [];
+let revenues = [];
+
+// --- Mitarbeiter ---
+function addEmployee() {
+  const name = document.getElementById('employeeName').value.trim();
+  const branch = document.getElementById('employeeBranch').value.trim();
+  if(!name || !branch) return alert("Name und Filiale erforderlich!");
+  employees.push({ name, branch });
+  document.getElementById('employeeName').value = '';
+  document.getElementById('employeeBranch').value = '';
+  updateEmployeeTable();
+  updateEmployeeSelect();
+  saveData();
+}
+
+function updateEmployeeTable() {
+  const tbody = document.querySelector('#employeeTable tbody');
+  tbody.innerHTML = '';
+  employees.forEach((e, i) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${e.name}</td><td>${e.branch}</td>
+                     <td><button onclick="deleteEmployee(${i})">Löschen</button></td>`;
+    tbody.appendChild(row);
+  });
+}
+
+function deleteEmployee(index) {
+  employees.splice(index, 1);
+  updateEmployeeTable();
+  updateEmployeeSelect();
+  saveData();
+}
+
+function updateEmployeeSelect() {
+  const select = document.getElementById('employeeSelect');
+  select.innerHTML = '';
+  employees.forEach((e, i) => {
+    const option = document.createElement('option');
+    option.value = i;
+    option.textContent = e.name;
+    select.appendChild(option);
+  });
+}
+
+// --- Umsatz ---
+function addRevenue() {
+  const empIndex = document.getElementById('employeeSelect').value;
+  const amount = parseFloat(document.getElementById('revenue').value);
+  const dateInput = document.getElementById('revenueDate').value;
+  if(empIndex === '' || isNaN(amount) || !dateInput) return alert("Mitarbeiter, Betrag und Datum erforderlich!");
+  
+  const date = new Date(dateInput);
+  const formatted = date.toLocaleDateString('de-DE'); // DD.MM.YYYY
+  revenues.push({ date: formatted, employee: employees[empIndex].name, amount });
+  
+  document.getElementById('revenue').value = '';
+  document.getElementById('revenueDate').value = '';
+  updateRevenueTable();
+  updateMonthlyTable();
+  updateYearlyTable();
+  saveData();
+}
+
+function updateRevenueTable() {
+  const tbody = document.querySelector('#revenueTable tbody');
+  tbody.innerHTML = '';
+  revenues.forEach(r => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${r.date}</td><td>${r.employee}</td><td>${r.amount.toFixed(2)}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// --- Monatsübersicht ---
+function updateMonthlyTable() {
+  const tbody = document.querySelector('#monthlyTable tbody');
+  tbody.innerHTML = '';
+  const monthly = {};
+  revenues.forEach(r => {
+    const [day, month, year] = r.date.split('.');
+    const key = `${month}.${year}`;
+    monthly[key] = (monthly[key] || 0) + r.amount;
+  });
+  Object.keys(monthly).sort((a,b)=>{
+    const [m1,y1]=a.split('.').map(Number),[m2,y2]=b.split('.').map(Number);
+    return y1!==y2?y1-y2:m1-m2;
+  }).forEach(month=>{
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${month}</td><td>${monthly[month].toFixed(2)}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// --- Jahresübersicht ---
+function updateYearlyTable() {
+  const tbody = document.querySelector('#yearlyTable tbody');
+  tbody.innerHTML = '';
+  const yearly = {};
+  revenues.forEach(r => {
+    const year = r.date.split('.')[2];
+    yearly[year] = (yearly[year] || 0) + r.amount;
+  });
+  Object.keys(yearly).sort().forEach(year=>{
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${year}</td><td>${yearly[year].toFixed(2)}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// --- Daten speichern/laden ---
+function saveData() {
+  localStorage.setItem('employees', JSON.stringify(employees));
+  localStorage.setItem('revenues', JSON.stringify(revenues));
+}
+
+function loadData() {
+  const emp = JSON.parse(localStorage.getItem('employees'));
+  const rev = JSON.parse(localStorage.getItem('revenues'));
+  if(emp) employees = emp;
+  if(rev) revenues = rev;
+  updateEmployeeTable();
+  updateEmployeeSelect();
+  updateRevenueTable();
+  updateMonthlyTable();
+  updateYearlyTable();
+}
+
+// --- Export / Import ---
+function exportData() {
+  const dataStr = JSON.stringify({ employees, revenues }, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = "data.json";
+  a.click();
+}
+
+function importData() {
+  const file = document.getElementById('importFile').files[0];
+  if(!file) return alert("Datei auswählen!");
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      employees = data.employees || [];
+      revenues = data.revenues || [];
+      updateEmployeeTable();
+      updateEmployeeSelect();
+      updateRevenueTable();
+      updateMonthlyTable();
+      updateYearlyTable();
+      saveData();
+    } catch(err) { alert("Ungültige Datei!"); }
+  };
+  reader.readAsText(file);
+}
+
+// --- Initial ---
+loadData();
+</script>
+
+</body>
+</html>

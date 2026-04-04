@@ -1,1 +1,695 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPI Tracker</title>
+  <style>
+    :root { color-scheme: light; }
+    [data-theme="light"] {
+      --bg: #f5f5f5; --surface: #fff; --primary: #2563eb; --primary-hover: #1d4ed8;
+      --green: #16a34a; --red: #dc2626; --border: #e0e0e0; --text: #1a1a1a;
+      --muted: #6b7280; --header-bg: #1e293b; --header-text: #fff;
+      --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
+      --th-bg: #f8fafc; --rank-bar: #e5e7eb; --sort-active-bg: #eff6ff;
+      --badge-g-bg: #dcfce7; --badge-g-text: #16a34a;
+      --badge-r-bg: #fee2e2; --badge-r-text: #dc2626;
+      --kpi-bg: #eff6ff;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --surface: #1e293b; --primary: #60a5fa; --primary-hover: #3b82f6;
+      --green: #22c55e; --red: #ef4444; --border: #334155; --text: #e2e8f0;
+      --muted: #94a3b8; --header-bg: #0f172a; --header-text: #e2e8f0;
+      --gold: #fbbf24; --silver: #64748b; --bronze: #d97706;
+      --th-bg: #1a2332; --rank-bar: #334155; --sort-active-bg: #1e3a5f;
+      --badge-g-bg: #14532d; --badge-g-text: #4ade80;
+      --badge-r-bg: #7f1d1d; --badge-r-text: #fca5a5;
+      --kpi-bg: #1e3a5f;
+      --shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; transition: background .2s, color .2s; }
+
+    header { background: var(--header-bg); color: var(--header-text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: background .2s; }
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    nav button { background: rgba(255,255,255,.12); color: var(--header-text); border: none; padding: 8px 16px; cursor: pointer; border-radius: 6px; font-size: .9rem; transition: background .15s; }
+    nav button:hover { background: rgba(255,255,255,.25); }
+    nav button.active { background: var(--primary); }
+
+    main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+
+    h2 { font-size: 1.2rem; margin-bottom: 16px; }
+
+    .card { background: var(--surface); border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); transition: background .2s, box-shadow .2s; }
+    .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+
+    input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: .9rem; background: var(--surface); color: var(--text); transition: border-color .15s; }
+    input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+
+    button.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: .9rem; font-weight: 500; transition: background .15s, transform .05s; }
+    button.btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: .85; }
+    .btn-sm { padding: 4px 10px; font-size: .8rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+    th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .75rem; letter-spacing: .04em; color: var(--muted); }
+    td input { width: 70px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; }
+    .badge-g { background: var(--badge-g-bg); color: var(--badge-g-text); }
+    .badge-r { background: var(--badge-r-bg); color: var(--badge-r-text); }
+
+    .rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow); transition: background .2s; }
+    .rank-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; background: var(--border); color: var(--muted); flex-shrink: 0; }
+    .rank-1 .rank-num { background: var(--gold); color: #fff; }
+    .rank-2 .rank-num { background: var(--silver); color: #fff; }
+    .rank-3 .rank-num { background: var(--bronze); color: #fff; }
+    .rank-info { flex: 1; }
+    .rank-name { font-weight: 600; }
+    .rank-detail { font-size: .8rem; color: var(--muted); }
+    .rank-bar { height: 8px; border-radius: 4px; background: var(--rank-bar); margin-top: 4px; overflow: hidden; min-width: 120px; }
+    .rank-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+    .sort-toggle { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .sort-toggle button { padding: 6px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; cursor: pointer; font-size: .85rem; transition: background .15s; }
+    .sort-toggle button.active { border-color: var(--primary); background: var(--sort-active-bg); color: var(--primary); }
+
+    .kpi-tag { display: inline-block; padding: 4px 10px; background: var(--kpi-bg); border-radius: 12px; font-size: .8rem; margin: 2px; }
+    .kpi-tag .del { cursor: pointer; margin-left: 6px; color: var(--red); font-weight: 700; }
+
+    .empty { text-align: center; color: var(--muted); padding: 32px; }
+    .period-select { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    /* DASHBOARD TABLE */
+    .dash-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .dash-table th, .dash-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+    .dash-table th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; color: var(--muted); text-align: right; white-space: nowrap; }
+    .dash-table th:first-child, .dash-table td:first-child { text-align: left; }
+    .dash-table .name-col { min-width: 140px; text-align: left !important; font-weight: 500; }
+    .dash-table .month-col { min-width: 60px; }
+    .dash-table .total-col { min-width: 70px; font-weight: 700; }
+    .dash-table .target-col { min-width: 70px; }
+    .dash-table .pct-col { min-width: 55px; }
+    .dash-table tr:hover td { background: var(--kpi-bg); }
+    .dash-table tr.sub-header td { background: var(--th-bg); font-weight: 700; font-size: .78rem; }
+    .cell-good { background: #dcfce7 !important; color: #16a34a; font-weight: 600; }
+    .cell-bad { background: #fee2e2 !important; color: #dc2626; }
+    .cell-ok { background: #fef3c7 !important; color: #b45309; }
+    [data-theme="dark"] .cell-good { background: #14532d !important; color: #4ade80; }
+    [data-theme="dark"] .cell-bad { background: #7f1d1d !important; color: #fca5a5; }
+    [data-theme="dark"] .cell-ok { background: #78350f !important; color: #fbbf24; }
+    .dash-summary { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; }
+    .dash-summary-item { text-align: center; }
+    .dash-summary-val { font-size: 1.4rem; font-weight: 700; }
+    .dash-summary-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>KPI Tracker</h1>
+  <nav>
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="employees">Mitarbeiter</button>
+    <button data-tab="entry">Dateneingabe</button>
+    <button data-tab="ranking">Auswertung</button>
+    <button id="exportBtn" style="background:rgba(34,197,94,.25);">Export</button>
+    <button id="importBtn" style="background:rgba(139,92,246,.25);">Import</button>
+    <button id="themeBtn" style="font-size:1.1rem;padding:8px 14px;" title="Theme wechseln">&#9728;&#65039;</button>
+  </nav>
+</header>
+
+<main>
+  <div id="tab-dashboard" class="tab active">
+    <h2>Dashboard</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Jahr</label><select id="dashYear"></select></div>
+        <div class="form-group"><label>KPI</label><select id="dashKpi"></select></div>
+      </div>
+    </div>
+    <div class="card" style="padding:0; overflow-x:auto;">
+      <table class="dash-table" id="dashTable"></table>
+    </div>
+    <div class="dash-summary" id="dashSummary"></div>
+  </div>
+
+  <div id="tab-employees" class="tab">
+    <h2>Mitarbeiter & KPI-Ziele verwalten</h2>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="empName" placeholder="Max Mustermann">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="empStatus"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
+        </div>
+        <button class="btn btn-primary" id="addEmpBtn">Mitarbeiter anlegen</button>
+      </div>
+    </div>
+    <div id="empList"></div>
+  </div>
+
+  <div id="tab-entry" class="tab">
+    <h2>Monatliche KPI-Werte erfassen</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Mitarbeiter</label><select id="entryEmp"></select></div>
+        <div class="form-group"><label>Jahr</label><select id="entryYear"></select></div>
+        <div class="form-group"><label>Monat</label><select id="entryMonth"></select></div>
+      </div>
+    </div>
+    <div class="card"><div id="entryTable"></div></div>
+    <button class="btn btn-primary" id="saveEntryBtn">Werte speichern</button>
+  </div>
+
+  <div id="tab-ranking" class="tab">
+    <h2>Mitarbeiter-Ranking</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Jahr</label><select id="rankYear"></select></div>
+        <div class="form-group"><label>Monat (optional)</label><select id="rankMonth"><option value="">Gesamtjahr</option></select></div>
+        <button class="btn btn-primary" id="rankGoBtn">Auswerten</button>
+      </div>
+      <div class="sort-toggle">
+        <span style="font-size:.85rem;color:var(--muted)">Sortierung:</span>
+        <button class="sort-best active">Bester zuerst</button>
+        <button class="sort-worst">Schlechtester zuerst</button>
+      </div>
+    </div>
+    <div id="rankList"></div>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+/* ================= DATA ================= */
+let employees = []; // {id, name, status, kpis:[{name,target}], values:{year:{month:{kpiName:value}}}}
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function save() {
+  localStorage.setItem('kpiTracker', JSON.stringify(employees));
+}
+
+function load() {
+  try { employees = JSON.parse(localStorage.getItem('kpiTracker')) || []; }
+  catch { employees = []; }
+  employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
+}
+
+function getNow() {
+  const n = new Date();
+  return { y: n.getFullYear(), m: n.getMonth() + 1 };
+}
+
+/* ================= THEME ================= */
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('#themeBtn').innerHTML = t === 'dark' ? '&#127769;' : '&#9728;&#65039;';
+  localStorage.setItem('kpiTheme', t);
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+// Load saved theme or respect system preference
+(function initTheme() {
+  const saved = localStorage.getItem('kpiTheme');
+  if (saved) { applyTheme(saved); return; }
+  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+})();
+
+$('#themeBtn').addEventListener('click', toggleTheme);
+
+/* ================= IMPORT / EXPORT ================= */
+function exportData() {
+  const blob = new Blob([JSON.stringify(employees, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kpi-tracker_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      const d = JSON.parse(txt);
+      if (!Array.isArray(d)) throw 0;
+      if (confirm('Alle aktuellen Daten werden überschrieben. Fortfahren?')) {
+        employees = d;
+        employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
+        save();
+        renderEmpList();
+        alert('Import erfolgreich.');
+      }
+    } catch { alert('Ungültige Datei.'); }
+  };
+  inp.click();
+}
+
+$('#exportBtn').addEventListener('click', exportData);
+$('#importBtn').addEventListener('click', importData);
+
+/* ================= TABS ================= */
+$$('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'dashboard' || btn.dataset.tab === 'employees' || btn.dataset.tab === 'entry' || btn.dataset.tab === 'ranking') {
+      $$('#nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $$('.tab').forEach(t => t.classList.remove('active'));
+      $('#tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'dashboard') initializeDashboard();
+      if (btn.dataset.tab === 'employees') renderEmpList();
+      if (btn.dataset.tab === 'entry') populateEntrySelectors();
+      if (btn.dataset.tab === 'ranking') populateRankSelectors();
+    }
+  });
+});
+
+/* ================= DASHBOARD ================= */
+function initializeDashboard() {
+  fillYears('#dashYear');
+  const allKpiNames = [...new Set(employees.flatMap(e => e.kpis.map(k => k.name)))];
+  fillSelect('#dashKpi', allKpiNames.map(k => ({ v: k, l: k })));
+  if (allKpiNames.length) $('#dashKpi').value = allKpiNames[0];
+  renderDashboardTable();
+}
+
+function renderDashboardTable() {
+  const yr = $('#dashYear').value;
+  const kpiName = $('#dashKpi').value;
+  const tbl = $('#dashTable');
+  const sum = $('#dashSummary');
+  if (!yr || !kpiName || !employees.length) {
+    tbl.innerHTML = '<div class="empty">Keine Daten.</div>';
+    sum.innerHTML = '';
+    return;
+  }
+
+  const now = getNow();
+  const curMonth = now.m;
+  const progress = curMonth / 12;
+  const monthLabels = MONTHS.map(m => m.replace(/^\d+ - /, '').slice(0, 3));
+
+  let html = '<thead><tr><th class="name-col">Mitarbeiter</th>';
+  for (let i = 1; i <= 12; i++) html += '<th class="month-col">' + monthLabels[i - 1] + '</th>';
+  html += '<th class="total-col">Summe</th><th class="target-col">Ziel</th><th class="pct-col">%</th><th class="sol-col">Im Soll</th></tr></thead><tbody>';
+
+  let grandTotal = 0, grandTarget = 0;
+  const activeEmployees = employees.filter(e => e.status === 'aktiv');
+  const inactiveEmployees = employees.filter(e => e.status === 'inaktiv');
+
+  activeEmployees.forEach(emp => {
+    const kpi = emp.kpis.find(k => k.name === kpiName);
+    const target = kpi ? kpi.target : 0;
+    if (target > 0) grandTarget += target;
+    html += '<tr><td class="name-col">' + esc(emp.name) + '</td>';
+    let rowSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const hasValue = emp.values?.[yr]?.[m]?.[kpiName] !== undefined;
+      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
+      if (hasValue && val > 0) rowSum += val;
+      const sollBis = target / 12 * m; // Jahresziel / 12 * Monat
+      let cls = '';
+      // Färben wenn Wert vorhanden: basierend auf kumuliertem Soll-Vergleich
+      if (hasValue && val > 0) {
+        if (sollBis > 0 && rowSum >= sollBis) cls = 'cell-good';
+        else cls = 'cell-bad';
+      }
+      html += '<td class="' + cls + '">' + (val ? round(val) : '') + '</td>';
+    }
+    grandTotal += rowSum;
+    const pct = target ? Math.round(rowSum / target * 100) : 0;
+    const sollBisNow = target / 12 * curMonth;
+    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
+    html += '<td class="total-col">' + round(rowSum) + '</td>';
+    html += '<td class="target-col">' + round(target) + '</td>';
+    html += '<td class="pct-col' + (pct >= 100 ? ' cell-good' : pct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + pct + '%</td>';
+    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  });
+
+  // Inactive employees (greyed out)
+  inactiveEmployees.forEach(emp => {
+    const kpi = emp.kpis.find(k => k.name === kpiName);
+    const target = kpi ? kpi.target : 0;
+    html += '<tr style="opacity:.5"><td class="name-col">' + esc(emp.name) + ' <em style="color:var(--muted)">(inaktiv)</em></td>';
+    let rowSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
+      rowSum += val;
+      html += '<td>' + (val ? round(val) : '') + '</td>';
+    }
+    grandTotal += rowSum;
+    const pct = target ? Math.round(rowSum / target * 100) : 0;
+    const sollBisNow = target / 12 * curMonth;
+    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
+    html += '<td class="total-col">' + round(rowSum) + '</td>';
+    html += '<td class="target-col">' + round(target) + '</td>';
+    html += '<td class="pct-col">' + pct + '%</td>';
+    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  });
+
+  // Gesamt row
+  if (grandTarget > 0) {
+    const grandPct = Math.round(grandTotal / grandTarget * 100);
+    const imSollGesamt = (grandTarget / 12 * curMonth) > 0 && grandTotal >= grandTarget / 12 * curMonth;
+    html += '<tr class="sub-header"><td class="name-col">GESAMT</td>';
+    let runSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      runSum += (grandTarget / 12);
+      html += '<td style="color:var(--muted)">' + round(grandTarget / 12) + '</td>';
+    }
+    html += '<td class="total-col">' + round(grandTotal) + '</td>';
+    html += '<td class="target-col">' + round(grandTarget) + '</td>';
+    html += '<td class="pct-col' + (grandPct >= 100 ? ' cell-good' : grandPct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + grandPct + '%</td>';
+    html += '<td style="text-align:center">' + (imSollGesamt ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  }
+
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  // Summary
+  const sollBis = grandTarget * progress;
+  sum.innerHTML =
+    '<div class="dash-summary-item"><div class="dash-summary-val" style="color:' + (grandPct >= 100 ? 'var(--green)' : 'var(--red)') + '">' + grandPct + '%</div><div class="dash-summary-label">Erfüllung</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal) + '</div><div class="dash-summary-label">Erreicht</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTarget) + '</div><div class="dash-summary-label">Jahresziel</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal - sollBis) + '</div><div class="dash-summary-label">Abweichung zum Soll (' + round(sollBis) + ')</div></div>';
+}
+
+$('#dashYear').addEventListener('change', renderDashboardTable);
+$('#dashKpi').addEventListener('change', renderDashboardTable);
+
+/* ================= EMPLOYEE MGMT ================= */
+function renderEmpList() {
+  const c = $('#empList');
+  if (!employees.length) { c.innerHTML = '<div class="empty">Noch keine Mitarbeiter angelegt.</div>'; return; }
+
+  let html = '';
+  employees.forEach(emp => {
+    const kpiTags = emp.kpis.map((k, i) =>
+      `<span class="kpi-tag">${esc(k.name)} (Ziel: ${k.target})<span class="del" data-emp="${emp.id}" data-i="${i}">&times;</span></span>`
+    ).join('');
+    const sLabel = emp.status === 'aktiv'
+      ? '<span class="badge badge-g" style="cursor:pointer" data-status="' + emp.id + '">aktiv</span>'
+      : '<span class="badge badge-r" style="cursor:pointer" data-status="' + emp.id + '">inaktiv</span>';
+
+    html += `<div class="card" style="opacity:${emp.status === 'inaktiv' ? '.55' : '1'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <strong>${esc(emp.name)}</strong>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${sLabel}
+          <button class="btn btn-danger btn-sm" data-del="${emp.id}">Löschen</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">${kpiTags || '<span style="color:var(--muted);font-size:.85rem">Keine KPIs definiert</span>'}</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>KPI Name</label>
+          <input type="text" id="kpiName_${emp.id}" placeholder="z.B. Umsatz">
+        </div>
+        <div class="form-group">
+          <label>Jahresziel</label>
+          <input type="number" id="kpiTarget_${emp.id}" placeholder="1000">
+        </div>
+        <button class="btn btn-primary btn-sm" data-add-kpi="${emp.id}">+</button>
+      </div>
+    </div>`;
+  });
+  c.innerHTML = html;
+}
+
+function addEmployee() {
+  const name = $('#empName').value.trim();
+  if (!name) return alert('Name ausfüllen.');
+  const status = $('#empStatus').value;
+  employees.push({ id: genId(), name, status, kpis: [], values: {} });
+  $('#empName').value = '';
+  save(); renderEmpList();
+}
+
+function addKpi(empId) {
+  const nameInput = $('#kpiName_' + empId);
+  const targetInput = $('#kpiTarget_' + empId);
+  const name = nameInput.value.trim();
+  const target = parseFloat(targetInput.value) || 0;
+  if (!name) return alert('KPI-Name ausfüllen.');
+  const emp = employees.find(e => e.id === empId);
+  if (emp.kpis.some(k => k.name === name)) return alert('KPI existiert bereits.');
+  emp.kpis.push({ name, target });
+  nameInput.value = '';
+  targetInput.value = '';
+  save(); renderEmpList();
+}
+
+function removeKpi(empId, idx) {
+  const emp = employees.find(e => e.id === empId);
+  const removed = emp.kpis[idx].name;
+  emp.kpis.splice(idx, 1);
+  for (const yr in emp.values) {
+    for (const mo in emp.values[yr]) {
+      delete emp.values[yr][mo][removed];
+    }
+  }
+  save(); renderEmpList();
+}
+
+function deleteEmp(id) {
+  if (!confirm('Mitarbeiter wirklich löschen?')) return;
+  employees = employees.filter(e => e.id !== id);
+  save(); renderEmpList();
+}
+
+function toggleStatus(id) {
+  const emp = employees.find(e => e.id === id);
+  emp.status = emp.status === 'aktiv' ? 'inaktiv' : 'aktiv';
+  save(); renderEmpList();
+}
+
+$('#empList').addEventListener('click', e => {
+  if (e.target.dataset.del) deleteEmp(e.target.dataset.del);
+  if (e.target.dataset.addKpi) addKpi(e.target.dataset.addKpi);
+  if (e.target.dataset.emp) removeKpi(e.target.dataset.emp, +e.target.dataset.i);
+  if (e.target.dataset.status) toggleStatus(e.target.dataset.status);
+});
+
+$('#addEmpBtn').addEventListener('click', addEmployee);
+
+/* ================= ENTRY ================= */
+function populateEntrySelectors() {
+  fillSelect('#entryEmp', employees.filter(e => e.status === 'aktiv').map(e => ({ v: e.id, l: e.name })));
+  fillYears('#entryYear');
+  fillMonths('#entryMonth');
+  renderEntryTable();
+}
+
+function renderEntryTable() {
+  const empId = $('#entryEmp').value;
+  const yr = $('#entryYear').value;
+  const mo = $('#entryMonth').value;
+  const c = $('#entryTable');
+  if (!empId || !yr || !mo) { c.innerHTML = '<div class="empty">Bitte alle Felder auswählen.</div>'; return; }
+
+  const emp = employees.find(e => e.id === empId);
+  if (!emp.kpis.length) { c.innerHTML = '<div class="empty">Keine KPIs für diesen Mitarbeiter definiert.</div>'; return; }
+
+  const vals = emp.values?.[yr]?.[mo] || {};
+
+  let html = '<table><thead><tr><th style="text-align:left">KPI</th><th>Jahresziel</th><th>Wert</th><th>Summe (Jan\u2013' + MONTHS[+mo - 1] + ')</th><th>Erfüllung</th></tr></thead><tbody>';
+  emp.kpis.forEach(kpi => {
+    const val = vals[kpi.name] ?? '';
+    let runSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      runSum += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
+    }
+    const pct = kpi.target ? Math.round(runSum / kpi.target * 100) : 0;
+    const badge = pct >= 100 ? 'badge-g' : 'badge-r';
+
+    html += `<tr>
+      <td style="text-align:left;font-weight:500">${esc(kpi.name)}</td>
+      <td>${kpi.target}</td>
+      <td><input type="number" class="entry-input" data-kpi="${esc(kpi.name)}" value="${val}" min="0" step="any"></td>
+      <td>${runSum}</td>
+      <td><span class="badge ${badge}">${pct}%</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  c.innerHTML = html;
+}
+
+$('#entryEmp').addEventListener('change', renderEntryTable);
+$('#entryYear').addEventListener('change', renderEntryTable);
+$('#entryMonth').addEventListener('change', renderEntryTable);
+
+$('#saveEntryBtn').addEventListener('click', () => {
+  const empId = $('#entryEmp').value;
+  const yr = $('#entryYear').value;
+  const mo = $('#entryMonth').value;
+  if (!empId || !yr || !mo) return alert('Bitte alle Felder auswählen.');
+
+  const emp = employees.find(e => e.id === empId);
+  emp.values[yr] ||= {};
+  emp.values[yr][mo] ||= {};
+
+  $$('.entry-input').forEach(inp => {
+    emp.values[yr][mo][inp.dataset.kpi] = parseFloat(inp.value) || 0;
+  });
+
+  save();
+  renderEntryTable();
+  alert('Werte gespeichert!');
+});
+
+/* ================= RANKING ================= */
+let rankDesc = true;
+
+function populateRankSelectors() {
+  fillYears('#rankYear');
+  fillMonths('#rankMonth', true);
+}
+
+function calcScores(yr, mo) {
+  const results = [];
+  employees.forEach(emp => {
+    if (!emp.kpis.length) return;
+    let totalPct = 0, count = 0;
+
+    emp.kpis.forEach(kpi => {
+      let achieved = 0;
+      if (mo) {
+        // single month: show value for that month vs monthly target (annual target / 12)
+        achieved = emp.values?.[yr]?.[mo]?.[kpi.name] || 0;
+        const monthlyTarget = kpi.target / 12;
+        const pct = monthlyTarget > 0 ? achieved / monthlyTarget * 100 : 0;
+        totalPct += pct;
+      } else {
+        // full year
+        for (let m = 1; m <= 12; m++) {
+          achieved += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
+        }
+        const pct = kpi.target > 0 ? achieved / kpi.target * 100 : 0;
+        totalPct += pct;
+      }
+      count++;
+    });
+
+    const avgPct = count > 0 ? totalPct / count : 0;
+    results.push({ emp, score: avgPct, kpisCount: count });
+  });
+
+  results.sort((a, b) => rankDesc ? b.score - a.score : a.score - b.score);
+  return results;
+}
+
+function renderRanking() {
+  const yr = $('#rankYear').value;
+  const mo = $('#rankMonth').value;
+  const c = $('#rankList');
+  if (!yr) { c.innerHTML = '<div class="empty">Jahr auswählen.</div>'; return; }
+
+  const results = calcScores(yr, mo);
+  if (!results.length) { c.innerHTML = '<div class="empty">Keine Daten vorhanden.</div>'; return; }
+
+  let html = '';
+  results.forEach((r, idx) => {
+    const fillPct = Math.min(r.score, 100);
+    const barColor = r.score >= 100 ? 'var(--green)' : r.score >= 50 ? 'var(--gold)' : 'var(--red)';
+    const sTag = r.emp.status === 'inaktiv' ? ' <span class="badge badge-r">inaktiv</span>' : '';
+
+    html += `<div class="rank-row rank-${idx + 1}">
+      <div class="rank-num">${idx + 1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${esc(r.emp.name)}${sTag}</div>
+        <div class="rank-detail">Ø Erfüllung: ${r.score.toFixed(1)}% (${r.kpisCount} KPIs)</div>
+        <div class="rank-bar"><div class="rank-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
+      </div>
+    </div>`;
+  });
+  c.innerHTML = html;
+}
+
+$('.sort-best').addEventListener('click', function() {
+  rankDesc = true;
+  this.classList.add('active');
+  $('.sort-worst').classList.remove('active');
+  renderRanking();
+});
+$('.sort-worst').addEventListener('click', function() {
+  rankDesc = false;
+  this.classList.add('active');
+  $('.sort-best').classList.remove('active');
+  renderRanking();
+});
+$('#rankGoBtn').addEventListener('click', renderRanking);
+
+/* ================= HELPERS ================= */
+function fillSelect(sel, items) {
+  const el = $(sel);
+  el.innerHTML = items.map(i => `<option value="${i.v}">${esc(i.l)}</option>`).join('');
+}
+
+function fillYears(sel) {
+  const now = new Date().getFullYear();
+  const items = Array.from({ length: 7 }, (_, i) => {
+    const y = now - 3 + i;
+    return { v: y, l: y };
+  });
+  fillSelect(sel, items);
+  $(sel).value = now;
+}
+
+function fillMonths(sel, empty) {
+  const now = new Date().getMonth() + 1;
+  const items = empty ? [{ v: '', l: 'Gesamtjahr' }] : [];
+  MONTHS.forEach((name, i) => items.push({ v: i + 1, l: name }));
+  fillSelect(sel, items);
+  if (empty) {
+    // keep old value for ranking (Gesamtjahr), or default to Gesamtjahr
+  } else {
+    $(sel).value = now;
+  }
+}
+
+function fillMonths2(sel) {
+  const now = getNow();
+  const items = MONTHS.map((name, i) => ({ v: i + 1, l: name }));
+  fillSelect(sel, items);
+  $(sel).value = now.m;
+}
+
+const escDiv = document.createElement('div');
+function esc(s) { escDiv.textContent = s; return escDiv.innerHTML; }
+function round(n) { return Math.round(n * 100) / 100; }
+
+/* ================= INIT ================= */
+load();
+initializeDashboard();
+</script>
+
+</body>
+</html>

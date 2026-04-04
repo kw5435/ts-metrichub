@@ -1,376 +1,676 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MetricHub</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f8f8f8; font-size:16px; }
-header { background:#333; color:white; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; }
-header h1 { margin:0; font-size:28px; }
-nav { display:flex; gap:10px; flex-wrap:wrap; }
-nav button, nav .dropdown-btn { background:#555; color:white; border:none; padding:10px 15px; cursor:pointer; font-size:16px; }
-nav button:hover, nav .dropdown-btn:hover { background:#777; }
-.dropdown { position:relative; display:inline-block; }
-.dropdown-content { display:none; position:absolute; background:#fff; min-width:160px; box-shadow:0 8px 16px rgba(0,0,0,0.2); z-index:1; }
-.dropdown-content button { background:#fff; color:#333; width:100%; text-align:left; padding:10px; border:none; cursor:pointer; }
-.dropdown-content button:hover { background:#eee; }
-.dropdown:hover .dropdown-content { display:block; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetricHub</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <style>
+    :root{
+      --bg:#f2f2f7;--text:#1c1c1e;--header-bg:rgba(249,249,249,.85);--header-border:rgba(0,0,0,.1);
+      --btn-bg:#007aff;--btn-hover:#0062cc;--btn-text:#fff;
+      --card:#fff;--card-border:rgba(0,0,0,.06);--card-shadow:0 1px 3px rgba(0,0,0,.06);
+      --green:#d4edda;--red:#f8d7da;--border:#e5e5ea;--table-header:#f2f2f7;
+      --input-bg:#fff;--input-border:#c7c7cc;
+      --dropdown-bg:#fff;--dropdown-hover:#f2f2f7;
+      --badge-success:#34c759;--badge-danger:#ff3b30;
+      --tab-active:#007aff;--tab-inactive:#8e8e93;
+      --chart-target:rgba(0,0,0,.08);
+    }
+    [data-theme="dark"]{
+      --bg:#000;--text:#f5f5f7;--header-bg:rgba(28,28,30,.85);--header-border:rgba(255,255,255,.1);
+      --btn-bg:#0a84ff;--btn-hover:#409cff;--btn-text:#fff;
+      --card:#1c1c1e;--card-border:rgba(255,255,255,.08);--card-shadow:0 1px 4px rgba(0,0,0,.3);
+      --green:#2c5c2f;--red:#5c2c2c;--border:#38383a;--table-header:#2c2c2e;
+      --input-bg:#2c2c2e;--input-border:#48484a;
+      --dropdown-bg:#2c2c2e;--dropdown-hover:#3a3a3c;
+      --badge-success:#30d158;--badge-danger:#ff453a;
+      --tab-active:#0a84ff;--tab-inactive:#98989d;
+      --chart-target:rgba(255,255,255,.08);
+    }
+    @media(prefers-color-scheme:dark){
+      :root:not([data-theme="light"]){
+        --bg:#000;--text:#f5f5f7;--header-bg:rgba(28,28,30,.85);--header-border:rgba(255,255,255,.1);
+        --btn-bg:#0a84ff;--btn-hover:#409cff;--btn-text:#fff;
+        --card:#1c1c1e;--card-border:rgba(255,255,255,.08);--card-shadow:0 1px 4px rgba(0,0,0,.3);
+        --green:#2c5c2f;--red:#5c2c2c;--border:#38383a;--table-header:#2c2c2e;
+        --input-bg:#2c2c2e;--input-border:#48484a;
+        --dropdown-bg:#2c2c2e;--dropdown-hover:#3a3a3c;
+        --badge-success:#30d158;--badge-danger:#ff453a;
+        --tab-active:#0a84ff;--tab-inactive:#98989d;
+        --chart-target:rgba(255,255,255,.08);
+      }
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
+      margin:0;padding:0;background:var(--bg);color:var(--text);font-size:17px;
+      -webkit-font-smoothing:antialiased;
+      padding-bottom:env(safe-area-inset-bottom);
+    }
 
-section { display:none; padding:20px; max-width:1920px; margin:auto; }
-section.active { display:block; }
+    /* ===== iOS Header (tab bar style) ===== */
+    header{
+      position:sticky;top:0;z-index:100;
+      background:var(--header-bg);
+      backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+      border-bottom:.5px solid var(--header-border);
+      padding:12px 16px;
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    }
+    header h1{margin:0;font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
+    nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+    nav button,nav .dropdown-btn{
+      background:transparent;color:var(--tab-inactive);border:none;
+      padding:6px 10px;cursor:pointer;font-size:.85rem;font-weight:500;
+      border-radius:8px;transition:color .2s,background .2s;
+      white-space:nowrap;
+    }
+    nav button:hover,nav .dropdown-btn:hover{background:var(--dropdown-hover);color:var(--text)}
+    nav button:active,nav .dropdown-btn:active{opacity:.6}
 
-h2 { font-size:24px; margin-bottom:15px; }
-h3 { font-size:20px; margin-top:20px; }
+    /* ===== iOS Dropdown ===== */
+    .dropdown{position:relative;display:inline-block}
+    .dropdown-content{
+      display:none;position:absolute;top:calc(100% + 4px);left:0;
+      background:var(--dropdown-bg);min-width:200px;
+      box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;border-radius:12px;overflow:hidden;
+    }
+    .dropdown-content button{
+      background:transparent;color:var(--text);width:100%;text-align:left;
+      padding:12px 16px;border:none;cursor:pointer;font-size:.95rem;
+      transition:background .15s;
+    }
+    .dropdown-content button:active{background:var(--dropdown-hover)}
+    .dropdown:hover .dropdown-content{display:block}
 
-label, select, input, button { margin:5px; font-size:14px; }
-select[multiple] { height:120px; }
+    /* ===== Sections / Cards ===== */
+    section{display:none;padding:16px;max-width:960px;margin:0 auto}
+    section.active{display:block}
+    h2{font-size:1.5rem;font-weight:700;margin:0 0 16px;letter-spacing:-.02em}
 
-table { width:100%; border-collapse: collapse; margin-bottom:20px; table-layout: fixed; font-size:14px; }
-th, td { border:1px solid #ccc; padding:8px; text-align:center; word-wrap:break-word; }
-th { background:#f0f0f0; }
+    /* ===== Controls ===== */
+    .controls{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+      margin-bottom:16px;
+    }
+    label{font-size:.9rem;font-weight:500;color:var(--text)}
 
-canvas { max-width:100%; height:400px; margin-bottom:40px; }
+    /* ===== iOS Inputs ===== */
+    input[type="text"],input[type="number"],input[type="file"],select{
+      padding:8px 12px;border:.5px solid var(--input-border);border-radius:10px;
+      background:var(--input-bg);color:var(--text);font-size:.95rem;font-family:inherit;
+      transition:border-color .2s;
+    }
+    input[type="text"]:focus,input[type="number"]:focus,select:focus{
+      outline:none;border-color:var(--btn-bg);box-shadow:0 0 0 3px rgba(0,122,255,.15);
+    }
+    select[multiple]{height:140px;min-width:200px;padding:4px}
+    input[type="checkbox"]{accent-color:var(--btn-bg);width:20px;height:20px}
 
-.green { background-color:#a6f3a6; }
-.red { background-color:#f3a6a6; }
+    /* ===== iOS Tables ===== */
+    table{
+      width:100%;border-collapse:separate;border-spacing:0;
+      margin-bottom:20px;table-layout:fixed;font-size:.85rem;
+      background:var(--card);border-radius:12px;overflow:hidden;
+      box-shadow:var(--card-shadow);
+      border:.5px solid var(--card-border);
+    }
+    th{
+      background:var(--table-header);font-weight:600;padding:10px 8px;
+      border-bottom:.5px solid var(--border);color:var(--text);font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;
+    }
+    td{
+      border-bottom:.5px solid var(--border);padding:10px 8px;text-align:center;word-wrap:break-word;
+    }
+    tr:last-child td{border-bottom:none}
+    td:last-child{border-right:none}
+    th:first-child,td:first-child{text-align:left;padding-left:12px}
 
-@media print { body { font-size:12px; } canvas { height:250px !important; } table { font-size:12px; } }
-</style>
+    /* ===== Charts ===== */
+    canvas{
+      max-width:100%;height:350px;margin-bottom:30px;
+      background:var(--card);border-radius:12px;padding:12px;
+      box-shadow:var(--card-shadow);border:.5px solid var(--card-border);
+    }
+
+    /* ===== Status Colors ===== */
+    .bg-green{background-color:var(--green)}
+    .bg-red{background-color:var(--red)}
+
+    /* ===== Badges ===== */
+    .status-badge{padding:4px 10px;border-radius:20px;font-weight:600;font-size:.8rem;display:inline-block}
+    .status-badge.success{background:var(--badge-success);color:#fff}
+    .status-badge.danger{background:var(--badge-danger);color:#fff}
+
+    /* ===== iOS Buttons ===== */
+    button:not(nav button):not(.dropdown-btn):not(.dropdown-content button){
+      background:var(--btn-bg);color:var(--btn-text);border:none;
+      padding:10px 18px;border-radius:10px;font-size:.95rem;font-weight:600;
+      cursor:pointer;font-family:inherit;transition:opacity .15s;
+    }
+    button:hover:not(nav button):not(.dropdown-btn):not(.dropdown-content button){opacity:.85}
+    button:active:not(nav button):not(.dropdown-btn):not(.dropdown-content button){opacity:.6}
+
+    /* Nav action buttons (Import / Export) */
+    nav #importBtn{background:var(--btn-bg)!important;color:#fff!important;font-weight:600;border-radius:8px}
+    nav #exportBtn{background:var(--tab-inactive)!important;color:#fff!important;font-weight:500;border-radius:8px}
+
+    /* ===== Print ===== */
+    @media print{body{font-size:10px}canvas{height:200px!important}table{font-size:10px}header,nav,.controls,button:not(.no-print){display:none!important}section{display:block!important;padding:10px}}
+    @media(max-width:600px){nav{flex-direction:column;align-items:stretch;width:100%}.dropdown-content{width:100%;left:0}section{padding:16px 12px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0s!important;transition-duration:0s!important}}
+  </style>
 </head>
 <body>
+
 <header>
-<h1>MetricHub</h1>
-<nav>
-<button onclick="showTab('dashboard')">Dashboard</button>
-<button onclick="showTab('employee')">Mitarbeiter</button>
-<button onclick="showTab('wizard')">Wizard</button>
-<div class="dropdown">
-  <button class="dropdown-btn">Systemverwaltung</button>
-  <div class="dropdown-content">
-    <button onclick="showTab('adminEmployees')">Mitarbeiterverwaltung</button>
-    <button onclick="showTab('adminKPI')">KPI-Verwaltung</button>
-  </div>
-</div>
-<button onclick="showTab('evaluation')">Auswertung</button>
-<button onclick="exportData()">Datentransfer</button>
-</nav>
+  <h1>MetricHub</h1>
+  <nav>
+    <button data-tab="dashboard">Dashboard</button>
+    <button data-tab="employee">Mitarbeiter</button>
+    <button data-tab="wizard">Wizard</button>
+    <div class="dropdown">
+      <button class="dropdown-btn">Systemverwaltung</button>
+      <div class="dropdown-content">
+        <button data-tab="adminEmployees">Mitarbeiterverwaltung</button>
+        <button data-tab="adminKPI">KPI-Verwaltung</button>
+      </div>
+    </div>
+    <button data-tab="evaluation">Auswertung</button>
+    <button id="importBtn" style="background:#17a2b8;">Import</button>
+    <button id="exportBtn" style="background:#6c757d;">Export</button>
+  </nav>
 </header>
 
-<!-- Dashboard -->
 <section id="dashboard" class="active">
-<h2>Dashboard Gesamt-KPI</h2>
-<label for="dashboardYear">Jahr:</label>
-<select id="dashboardYear" onchange="updateDashboard()"></select>
-<label for="kpiSelect">KPIs auswählen:</label>
-<select id="kpiSelect" multiple size="5" onchange="updateDashboard()"></select>
-<canvas id="dashboardChart"></canvas>
+  <h2>Dashboard Gesamt-KPI</h2>
+  <div class="controls">
+    <label for="dashboardYear">Jahr:</label>
+    <select id="dashboardYear"></select>
+    <label for="kpiSelect">KPIs auswählen:</label>
+    <select id="kpiSelect" multiple size="5"></select>
+  </div>
+  <canvas id="dashboardChart"></canvas>
 </section>
 
-<!-- Mitarbeiter -->
 <section id="employee">
-<h2>Mitarbeiter KPIs</h2>
-<label for="employeeSelect">Mitarbeiter:</label>
-<select id="employeeSelect" onchange="updateEmployeeKPIs()"></select>
-<label for="employeeYear">Jahr:</label>
-<select id="employeeYear" onchange="updateEmployeeKPIs()"></select>
-<label><input type="checkbox" id="editMode" onchange="toggleEditMode()"> Bearbeitungsmodus</label>
-<div id="employeeKPITable"></div>
-<canvas id="employeeChart"></canvas>
-<button onclick="generateEvaluation()">Auswertung</button>
-<div id="evaluationResult" style="margin-top:20px;"></div>
+  <h2>Mitarbeiter KPIs</h2>
+  <div class="controls">
+    <label for="employeeSelect">Mitarbeiter:</label>
+    <select id="employeeSelect"></select>
+    <label for="employeeYear">Jahr:</label>
+    <select id="employeeYear"></select>
+    <label><input type="checkbox" id="editMode"> Bearbeitungsmodus</label>
+  </div>
+  <div id="employeeKPITable"></div>
+  <canvas id="employeeChart"></canvas>
+  <button class="no-print" id="evalBtn">Auswertung</button>
+  <div id="evaluationResult" style="margin-top:20px;"></div>
 </section>
 
-<!-- Wizard -->
 <section id="wizard">
-<h2>KPI Wizard</h2>
-<div id="wizardContainer">
-<label for="wizardEmployee">Mitarbeiter:</label>
-<select id="wizardEmployee"></select>
-<label for="wizardYear">Jahr:</label>
-<select id="wizardYear"></select>
-<label for="wizardMonth">Monat:</label>
-<select id="wizardMonth"></select>
-<div id="wizardKPIs"></div>
-<button onclick="saveWizardData()">Speichern</button>
-</div>
+  <h2>KPI Wizard</h2>
+  <div id="wizardContainer">
+    <div class="controls">
+      <label for="wizardEmployee">Mitarbeiter:</label>
+      <select id="wizardEmployee"></select>
+      <label for="wizardYear">Jahr:</label>
+      <select id="wizardYear"></select>
+      <label for="wizardMonth">Monat:</label>
+      <select id="wizardMonth"></select>
+    </div>
+    <div id="wizardKPIs" class="controls"></div>
+    <button id="wizardSave">Speichern</button>
+  </div>
 </section>
 
-<!-- Admin Mitarbeiter -->
 <section id="adminEmployees">
-<h2>Mitarbeiterverwaltung</h2>
-<input type="text" id="adminEmployeeName" placeholder="Name">
-<input type="text" id="adminEmployeeBranch" placeholder="Filiale">
-<select id="adminEmployeeStatus">
-<option value="aktiv">aktiv</option>
-<option value="inaktiv">inaktiv</option>
-</select>
-<button onclick="addAdminEmployee()">Hinzufügen</button>
-<div id="employeeAdminTable"></div>
+  <h2>Mitarbeiterverwaltung</h2>
+  <div class="controls">
+    <input type="text" id="adminEmployeeName" placeholder="Name">
+    <input type="text" id="adminEmployeeBranch" placeholder="Filiale">
+    <select id="adminEmployeeStatus"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
+    <button id="addEmpBtn">Hinzufügen</button>
+  </div>
+  <div id="employeeAdminTable"></div>
 </section>
 
-<!-- Admin KPI -->
 <section id="adminKPI">
-<h2>KPI-Verwaltung</h2>
-<input type="text" id="kpiNameInput" placeholder="KPI Name">
-<input type="number" id="kpiTargetInput" placeholder="Jahresziel">
-<button onclick="addKPI()">Hinzufügen</button>
-<div id="kpiAdminList"></div>
+  <h2>KPI-Verwaltung</h2>
+  <div class="controls">
+    <input type="text" id="kpiNameInput" placeholder="KPI Name">
+    <input type="number" id="kpiTargetInput" placeholder="Jahresziel">
+    <button id="addKpiBtn">Hinzufügen</button>
+  </div>
+  <div id="kpiAdminList"></div>
 </section>
 
-<!-- Gesamtauswertung -->
 <section id="evaluation">
-<h2>Gesamtauswertung</h2>
-<button onclick="generateTotalEvaluation()">Gesamtauswertung druckbar</button>
-<div id="totalEvaluationResult" style="margin-top:20px;"></div>
+  <h2>Gesamtauswertung</h2>
+  <button class="no-print" id="totalEvalBtn">Gesamtauswertung druckbar</button>
+  <div id="totalEvaluationResult" style="margin-top:20px;"></div>
 </section>
 
 <script>
-const monthNames=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni",
-"07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
-let employees=[], kpiDefinitions=[];
-let dashboardChart=null, employeeChart=null;
+const MONTH_NAMES=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni","07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
+// Stable color palette instead of random() which flickers on every update
+const PALETTE=["#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f","#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ac","#7bb0d0","#e8b040"];
 
-// Navigation
-function showTab(tab){
-['dashboard','employee','wizard','adminEmployees','adminKPI','evaluation'].forEach(id=>document.getElementById(id).classList.remove('active'));
-document.getElementById(tab).classList.add('active');
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+// Reusable element for escaping — single allocation, no GC churn
+const _escDiv = document.createElement('div');
+const escapeHtml = s => { _escDiv.textContent = s; return _escDiv.innerHTML; };
+const debounce = (fn, ms=300) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+
+/* ================= THEME (auto-detect) ================= */
+
+/* ================= STATE ================= */
+let employees = [], kpiDefinitions = [];
+const targets = {};
+let dashChart, empChart, _dirty = false, _saveTmr;
+
+/* ================= STORAGE ================= */
+function save() {
+  localStorage.setItem('metricHubData', JSON.stringify({employees, kpiDefinitions}));
+}
+function scheduleSave() {
+  _dirty = true;
+  clearTimeout(_saveTmr);
+  _saveTmr = setTimeout(() => { save(); _dirty = false; }, 500);
+}
+function loadData() {
+  try {
+    const d = JSON.parse(localStorage.getItem('metricHubData') || '{}');
+    employees = d.employees || [];
+    kpiDefinitions = d.kpiDefinitions || ["Umsatz","Leads","Calls"];
+  } catch { employees = []; kpiDefinitions = ["Umsatz","Leads","Calls"]; }
+  kpiDefinitions.forEach(k => targets[k] ||= 0);
 }
 
-// LocalStorage
-function saveData(){ localStorage.setItem('metricHubData',JSON.stringify({employees,kpiDefinitions})); }
-function loadData(){ const data=localStorage.getItem('metricHubData'); if(data){ try{ const obj=JSON.parse(data); employees=obj.employees||[]; kpiDefinitions=obj.kpiDefinitions||["Umsatz","Leads","Calls"]; }catch(e){console.warn(e);} }}
+/* ================= UI HELPERS ================= */
+function selectOpts(id, items, labelFn, valFn) {
+  const sel = $(id);
+  if (!sel) return;
+  sel.innerHTML = '';
+  for (let i = 0; i < items.length; i++) {
+    const o = document.createElement('option');
+    o.value = valFn ? valFn(items[i], i) : items[i];
+    o.textContent = labelFn ? labelFn(items[i], i) : items[i];
+    sel.appendChild(o);
+  }
+}
 
-// Export
-function exportData(){ const data=JSON.stringify({employees,kpiDefinitions},null,2); const blob=new Blob([data],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="metricHub_data.json"; a.click(); }
+function years(sel, defNow) {
+  const y = new Date().getFullYear();
+  const items = Array.from({length: 7}, (_, i) => y - 5 + i);
+  selectOpts(sel, items, null, v => v);
+  if (defNow) sel.value = y;
+}
 
-// Init
-function init(){
+function months(sel) {
+  const cur = new Date().getMonth() + 1;
+  selectOpts(sel, Array.from({length: 12}, (_, i) => i + 1), null, v => v);
+  sel.value = cur;
+}
+
+function kpiColor(i) { return PALETTE[i % PALETTE.length]; }
+
+/* ================= CHARTS ================= */
+function destroyChart(c) { if (c) { c.destroy(); } }
+
+function updateDashChart() {
+  const yr = $('#dashboardYear').value;
+  if (!yr) return;
+  const sel = Array.from($('#kpiSelect').selectedOptions).map(o => o.value);
+  if (typeof Chart === 'undefined') return;
+  const datasets = sel.map((kpi, idx) => {
+    const data = new Array(12).fill(0);
+    for (let e = 0; e < employees.length; e++) {
+      const v = employees[e].kpis?.[yr]?.[kpi]?.values || {};
+      for (let m = 1; m <= 12; m++) data[m - 1] += v[m] || 0;
+    }
+    return { label: kpi, data, borderColor: kpiColor(idx), fill: false, tension: 0.2 };
+  });
+  if (!dashChart) {
+    dashChart = new Chart($('#dashboardChart').getContext('2d'), {
+      type: 'line', data: { labels: MONTH_NAMES, datasets },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+  } else {
+    dashChart.data.datasets = datasets;
+    dashChart.update('none'); // 'none' skips animation — fastest path
+  }
+}
+
+function updateEmpChart(emp, yr) {
+  if (typeof Chart === 'undefined') return;
+  const datasets = [];
+  let di = 0;
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const kpi = kpiDefinitions[i];
+    const v = emp.kpis?.[yr]?.[kpi]?.values || {};
+    const data = Array.from({length: 12}, (_, m) => v[m + 1] || 0);
+    if (data.some(x => x > 0)) datasets.push({ label: kpi, data, borderColor: kpiColor(di++), fill: false, tension: 0.2 });
+  }
+  if (!empChart) {
+    empChart = new Chart($('#employeeChart').getContext('2d'), {
+      type: 'line', data: { labels: MONTH_NAMES, datasets },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    });
+  } else {
+    empChart.data.datasets = datasets;
+    empChart.update('none');
+  }
+}
+
+function destroyCharts() {
+  destroyChart(dashChart); dashChart = null;
+  destroyChart(empChart); empChart = null;
+}
+
+/* ================= SELECTORS INIT ================= */
+function initSelectors() {
+  years('#dashboardYear', true);
+  years('#employeeYear', true);
+  years('#wizardYear', true);
+  months('#wizardMonth');
+  selectOpts('#kpiSelect', kpiDefinitions);
+  selectOpts('#employeeSelect', employees.map((e, i) => [i, `${e.name} (${e.branch})`]), e => e[1], e => e[0]);
+  selectOpts('#wizardEmployee', employees.map((e, i) => [i, e.name]), e => e[1], e => e[0]);
+}
+
+/* ================= TABS ================= */
+let activeTab = 'dashboard';
+
+function showTab(id) {
+  $$('.section').forEach(s => s.classList.remove('active'));
+  const sec = $(`section[id="${id}"]`);
+  if (!sec) return;
+  sec.classList.add('active');
+  activeTab = id;
+
+  if (id === 'dashboard') updateDashChart();
+  else if (id === 'employee') updateEmpTable();
+  else if (id === 'evaluation') totalEval();
+  else if (id === 'wizard') wizardRender();
+  else if (id === 'adminEmployees') adminEmpRender();
+  else if (id === 'adminKPI') adminKpiRender();
+}
+
+/* ================= EMPLOYEE TABLE ================= */
+function updateEmpTable() {
+  const idx = $('#employeeSelect').value;
+  const yr = $('#employeeYear').value;
+  const edit = $('#editMode').checked;
+  const c = $('#employeeKPITable');
+  if (idx === '' || !yr) { c.innerHTML = '<p>Wählen Sie Mitarbeiter & Jahr.</p>'; return; }
+  const emp = employees[idx];
+  emp.kpis ||= {};
+  emp.kpis[yr] ||= {};
+
+  let h = '<table><thead><tr><th style="width:110px">KPI</th>';
+  for (let m = 0; m < 12; m++) h += '<th>' + MONTH_NAMES[m] + '</th>';
+  h += '</tr></thead><tbody>';
+
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const kpi = kpiDefinitions[i];
+    const kd = emp.kpis[yr][kpi] ||= { target: targets[kpi] || 0, values: {} };
+    h += '<tr><td>' + escapeHtml(kpi) + '</td>';
+    let run = 0;
+    for (let m = 1; m <= 12; m++) {
+      const val = kd.values[m] || 0;
+      run += val;
+      const t = kd.target || 0;
+      const pct = t ? run / (t * (m / 12)) : 0;
+      h += edit
+        ? '<td><input type="number" value="' + val + '" data-emp="' + idx + '" data-year="' + escapeHtml(yr) + '" data-kpi="' + escapeHtml(kpi) + '" data-m="' + m + '" style="width:55px" class="ei"></td>'
+        : '<td class="' + (pct >= 1 ? 'bg-green' : 'bg-red') + '">' + val + '</td>';
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+  c.innerHTML = h;
+  updateEmpChart(emp, yr);
+}
+
+/* ================= WIZARD ================= */
+function wizardRender() {
+  const idx = $('#wizardEmployee').value;
+  const yr = $('#wizardYear').value;
+  const mo = $('#wizardMonth').value;
+  const c = $('#wizardKPIs');
+  if (idx === '' || !yr || !mo) { c.innerHTML = '<p>Bitte Felder ausfüllen.</p>'; return; }
+  const emp = employees[idx];
+  emp.kpis ||= {};
+  emp.kpis[yr] ||= {};
+
+  let h = '';
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const kpi = kpiDefinitions[i];
+    const kd = emp.kpis[yr][kpi] ||= { target: targets[kpi] || 0, values: {} };
+    h += '<label for="w_' + i + '">' + escapeHtml(kpi) + ':</label><input type="number" id="w_' + i + '" value="' + (kd.values[mo] || 0) + '">';
+  }
+  c.innerHTML = h;
+}
+
+function wizardSave() {
+  const idx = $('#wizardEmployee').value;
+  const yr = $('#wizardYear').value;
+  const mo = $('#wizardMonth').value;
+  if (idx === '' || !yr || !mo) return alert('Alle Felder ausfüllen.');
+  const emp = employees[idx];
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const v = parseFloat($('#w_' + i).value) || 0;
+    emp.kpis[yr][kpiDefinitions[i]].values[mo] = v;
+  }
+  scheduleSave();
+  alert('Gespeichert.');
+}
+
+/* ================= ADMIN EMPLOYEES ================= */
+function adminEmpRender() {
+  const c = $('#employeeAdminTable');
+  if (!employees.length) { c.innerHTML = '<p>Keine Mitarbeiter.</p>'; return; }
+  let h = '<table><thead><tr><th>Name</th><th>Filiale</th><th>Status</th><th>Aktion</th></tr></thead><tbody>';
+  for (let i = 0; i < employees.length; i++) {
+    const e = employees[i];
+    h += '<tr><td>' + escapeHtml(e.name) + '</td><td>' + escapeHtml(e.branch) + '</td>'
+      + '<td><select data-i="' + i + '" class="ss"><option value="aktiv"' + (e.status === 'aktiv' ? ' selected' : '') + '>aktiv</option><option value="inaktiv"' + (e.status === 'inaktiv' ? ' selected' : '') + '>inaktiv</option></select></td>'
+      + '<td><button data-i="' + i + '" class="de" style="background:#dc3545;color:#fff;padding:4px 8px;border-radius:4px;border:none;cursor:pointer">Löschen</button></td></tr>';
+  }
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+
+/* ================= ADMIN KPIs ================= */
+function adminKpiRender() {
+  const c = $('#kpiAdminList');
+  if (!kpiDefinitions.length) { c.innerHTML = '<p>Keine KPIs.</p>'; return; }
+  let h = '<table><thead><tr><th>KPI</th><th>Standardziel</th><th>Aktion</th></tr></thead><tbody>';
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const k = kpiDefinitions[i];
+    h += '<tr><td>' + escapeHtml(k) + '</td><td>' + (targets[k] || 0) + '</td><td><button data-i="' + i + '" class="dk" style="background:#dc3545;color:#fff;padding:4px 8px;border-radius:4px;border:none;cursor:pointer">Löschen</button></td></tr>';
+  }
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+
+/* ================= EVALUATIONS ================= */
+function empEval() {
+  const idx = $('#employeeSelect').value;
+  const yr = $('#employeeYear').value;
+  const c = $('#evaluationResult');
+  if (idx === '' || !yr) { c.innerHTML = '<p>Daten unvollständig.</p>'; return; }
+  const emp = employees[idx];
+  let h = '<table><thead><tr><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr></thead><tbody>';
+  for (let i = 0; i < kpiDefinitions.length; i++) {
+    const kpi = kpiDefinitions[i];
+    const d = emp.kpis?.[yr]?.[kpi];
+    const t = d?.target || 0;
+    let sum = 0; const keys = Object.keys(d?.values || {});
+    for (let j = 0; j < keys.length; j++) sum += +d.values[keys[j]] || 0;
+    const pct = t ? Math.round(sum / t * 100) : 0;
+    h += '<tr><td>' + escapeHtml(kpi) + '</td><td>' + t + '</td><td>' + sum + '</td><td>' + pct + '%</td><td><span class="status-badge ' + (pct >= 100 ? 'success' : 'danger') + '">' + (pct >= 100 ? 'Grün' : 'Rot') + '</span></td></tr>';
+  }
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+
+function totalEval() {
+  const yr = $('#dashboardYear').value || new Date().getFullYear();
+  const c = $('#totalEvaluationResult');
+  if (!employees.length) { c.innerHTML = '<p>Keine Daten.</p>'; return; }
+  let h = '<table><thead><tr><th>MA</th><th>Filiale</th><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr></thead><tbody>';
+  for (let e = 0; e < employees.length; e++) {
+    const emp = employees[e];
+    if (emp.status !== 'aktiv') continue;
+    for (let i = 0; i < kpiDefinitions.length; i++) {
+      const kpi = kpiDefinitions[i];
+      const d = emp.kpis?.[yr]?.[kpi];
+      if (!d) continue;
+      const t = d.target || 0;
+      let sum = 0; const keys = Object.keys(d.values || {});
+      for (let j = 0; j < keys.length; j++) sum += +d.values[keys[j]] || 0;
+      const pct = t ? Math.round(sum / t * 100) : 0;
+      h += '<tr><td>' + escapeHtml(emp.name) + '</td><td>' + escapeHtml(emp.branch) + '</td><td>' + escapeHtml(kpi) + '</td><td>' + t + '</td><td>' + sum + '</td><td>' + pct + '%</td><td><span class="status-badge ' + (pct >= 100 ? 'success' : 'danger') + '">' + (pct >= 100 ? 'Grün' : 'Rot') + '</span></td></tr>';
+    }
+  }
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+
+/* ================= IMPORT / EXPORT ================= */
+function exportData() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '-' + pad(now.getHours()) + '-' + pad(now.getMinutes()) + '-' + pad(now.getSeconds());
+  const blob = new Blob([JSON.stringify({employees, kpiDefinitions}, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'metricHub_' + ts + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      const d = JSON.parse(txt);
+      if (!Array.isArray(d.employees) || !Array.isArray(d.kpiDefinitions)) throw 0;
+      if (prompt('ACHTUNG: Alle lokalen Daten werden überschrieben!\n\nGeben Sie "yes" ein:').trim().toLowerCase() !== 'yes') return alert('Abgebrochen.');
+      employees = d.employees; kpiDefinitions = d.kpiDefinitions;
+      Object.keys(targets).forEach(k => delete targets[k]);
+      kpiDefinitions.forEach(k => targets[k] ||= 0);
+      localStorage.setItem('metricHubData', JSON.stringify(d));
+      destroyCharts();
+      initSelectors(); showTab('dashboard');
+      alert('Import erfolgreich.');
+    } catch { alert('Fehler: Ungültige Datei.'); }
+  };
+  inp.click();
+}
+
+/* ================= EVENTS ================= */
+document.addEventListener('DOMContentLoaded', () => {
   loadData();
-  const now=new Date();
-  const yearNow=now.getFullYear();
-  const dashYear=document.getElementById('dashboardYear'); dashYear.innerHTML='';
-  for(let y=yearNow-5;y<=yearNow+1;y++){ const o=document.createElement('option'); o.value=o.textContent=y; if(y===yearNow) o.selected=true; dashYear.appendChild(o); }
+  initSelectors();
+  showTab('dashboard');
 
-  const kpiSelect=document.getElementById('kpiSelect'); kpiSelect.innerHTML=''; kpiDefinitions.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; kpiSelect.appendChild(o); });
+  // Tab navigation — event delegation on nav
+  $('nav').addEventListener('click', e => {
+    const tab = e.target.dataset?.tab;
+    if (tab) showTab(tab);
+  });
 
-  updateEmployeeSelect();
-  updateWizardDropdowns();
-  updateKPIAdminList();
-  updateEmployeeAdminTable();
-  updateDashboard();
-}
-init();
+  // Import/Export
+  $('#importBtn').addEventListener('click', importData);
+  $('#exportBtn').addEventListener('click', exportData);
 
-const monthNames=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni",
-"07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
+  // Employee table inputs — inline cell update, no re-render
+  $('#employeeKPITable').addEventListener('input', e => {
+    const inp = e.target;
+    if (!inp.classList.contains('ei')) return;
+    const emp = employees[inp.dataset.emp];
+    const kd = emp.kpis[inp.dataset.year][inp.dataset.kpi];
+    kd.values[inp.dataset.m] = parseFloat(inp.value) || 0;
+    scheduleSave();
+    // In-place color update — no DOM rebuild
+    let run = 0; const keys = Object.keys(kd.values);
+    for (let i = 0; i < keys.length; i++) run += +kd.values[keys[i]] || 0;
+    const t = kd.target || 0;
+    const mN = parseInt(inp.dataset.m);
+    const pct = t ? run / (t * (mN / 12)) : 0;
+    inp.parentElement.className = pct >= 1 ? 'bg-green' : 'bg-red';
+  });
 
-// Dashboard
-function updateDashboard() {
-    const year = document.getElementById('dashboardYear').value;
-    const selectedKPIs = Array.from(document.getElementById('kpiSelect').selectedOptions).map(o=>o.value);
-    const labels = monthNames;
-    const datasets = [];
-    selectedKPIs.forEach(kpi=>{
-        let data = [];
-        employees.forEach(emp=>{
-            const empYear = emp.kpis[year] || {};
-            const kpiData = empYear[kpi] ? empYear[kpi].values : {};
-            for(let m=1;m<=12;m++){
-                data[m-1]=(data[m-1]||0)+(kpiData[m]||0);
-            }
-        });
-        datasets.push({label:kpi, data:data, borderColor=getRandomColor(), fill:false, tension:0.1});
-    });
-    if(dashboardChart) dashboardChart.destroy();
-    const ctx = document.getElementById('dashboardChart').getContext('2d');
-    dashboardChart = new Chart(ctx, {
-        type:'line',
-        data:{labels:labels,datasets:datasets},
-        options:{responsive:true, plugins:{legend:{position:'top'}}}
-    });
-}
+  // Status select delegation
+  $('#employeeAdminTable').addEventListener('change', e => {
+    if (e.target.classList.contains('ss')) {
+      employees[e.target.dataset.i].status = e.target.value;
+      scheduleSave();
+    }
+  });
 
-// Mitarbeiteransicht
-function updateEmployeeKPIs(){
-    const empIndex=document.getElementById('employeeSelect').selectedIndex;
-    const year=document.getElementById('employeeYear').value;
-    if(empIndex<0) return;
-    const emp=employees[empIndex];
-    if(!emp.kpis[year]) emp.kpis[year]={};
-    const container=document.getElementById('employeeKPITable');
-    container.innerHTML='';
-    let table=document.createElement('table');
-    let html='<tr><th>KPI</th>'+monthNames.map(m=>`<th>${m}</th>`).join('')+'</tr>';
-    kpiDefinitions.forEach(kpi=>{
-        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0, values:{}};
-        html+='<tr><td>'+kpi+'</td>';
-        for(let m=1;m<=12;m++){
-            let val=emp.kpis[year][kpi].values[m]||0;
-            if(document.getElementById('editMode').checked){
-                html+='<td><input type="number" value="'+val+'" onchange="updateEmployeeValue('+empIndex+',\''+year+'\',\''+kpi+'\','+m+',this.value)"></td>';
-            } else {
-                let target=emp.kpis[year][kpi].target;
-                let percent=target?val/target:0;
-                let color=percent>=m/12?'green':'red';
-                html+='<td class="'+color+'">'+val+'</td>';
-            }
+  // Delete delegation
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('de')) {
+      if (!confirm('"' + employees[e.target.dataset.i].name + '" löschen?')) return;
+      employees.splice(e.target.dataset.i, 1);
+      scheduleSave(); initSelectors(); adminEmpRender();
+    }
+    if (e.target.classList.contains('dk')) {
+      const k = kpiDefinitions[e.target.dataset.i];
+      if (!confirm('KPI "' + k + '" löschen?')) return;
+      kpiDefinitions.splice(e.target.dataset.i, 1);
+      delete targets[k];
+      for (let e = 0; e < employees.length; e++) {
+        if (employees[e].kpis) {
+          for (const yr in employees[e].kpis) delete employees[e].kpis[yr][k];
         }
-        html+='</tr>';
-    });
-    table.innerHTML=html;
-    container.appendChild(table);
-    updateEmployeeChart(emp, year);
-}
+      }
+      scheduleSave(); initSelectors(); adminKpiRender();
+    }
+  });
 
-function updateEmployeeValue(empIndex, year, kpi, month, value){
-    employees[empIndex].kpis[year][kpi].values[month]=parseFloat(value)||0;
-    saveData();
-    updateEmployeeKPIs();
-}
+  // Wizard save
+  $('#wizardSave').addEventListener('click', wizardSave);
+  $('#evalBtn').addEventListener('click', empEval);
+  $('#totalEvalBtn').addEventListener('click', totalEval);
+  $('#addEmpBtn').addEventListener('click', () => {
+    const n = $('#adminEmployeeName').value.trim();
+    const b = $('#adminEmployeeBranch').value.trim();
+    if (!n || !b) return alert('Name & Filiale nötig.');
+    employees.push({name: n, branch: b, status: $('#adminEmployeeStatus').value, kpis: {}});
+    $('#adminEmployeeName').value = ''; $('#adminEmployeeBranch').value = '';
+    scheduleSave(); initSelectors(); adminEmpRender();
+  });
+  $('#addKpiBtn').addEventListener('click', () => {
+    const n = $('#kpiNameInput').value.trim();
+    if (!n) return alert('Name nötig.');
+    if (kpiDefinitions.includes(n)) return alert('Existiert bereits.');
+    kpiDefinitions.push(n);
+    targets[n] = parseFloat($('#kpiTargetInput').value) || 0;
+    $('#kpiNameInput').value = ''; $('#kpiTargetInput').value = '';
+    scheduleSave(); initSelectors(); adminKpiRender(); updateDashChart();
+  });
 
-function toggleEditMode(){
-    updateEmployeeKPIs();
-}
-
-// Wizard
-function updateWizardDropdowns(){
-    const empSel=document.getElementById('wizardEmployee'); empSel.innerHTML='';
-    employees.forEach((e,i)=>{const o=document.createElement('option'); o.value=i; o.textContent=e.name; empSel.appendChild(o);});
-    const yearSel=document.getElementById('wizardYear'); yearSel.innerHTML='';
-    const now=new Date(); for(let y=now.getFullYear()-5;y<=now.getFullYear()+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===now.getFullYear()) o.selected=true; yearSel.appendChild(o);}
-    const monthSel=document.getElementById('wizardMonth'); monthSel.innerHTML='';
-    monthNames.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i+1; o.textContent=m; if(i+1===now.getMonth()+1) o.selected=true; monthSel.appendChild(o);});
-    updateWizardKPIs();
-}
-
-function updateWizardKPIs(){
-    const container=document.getElementById('wizardKPIs'); container.innerHTML='';
-    kpiDefinitions.forEach(kpi=>{
-        container.innerHTML+='<label>'+kpi+' <input type="number" id="wizard_'+kpi+'"></label><br>';
-    });
-}
-
-function saveWizardData(){
-    const empIndex=document.getElementById('wizardEmployee').value;
-    const year=document.getElementById('wizardYear').value;
-    const month=document.getElementById('wizardMonth').value;
-    const emp=employees[empIndex];
-    if(!emp.kpis[year]) emp.kpis[year]={};
-    kpiDefinitions.forEach(kpi=>{
-        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0, values:{}};
-        const val=parseFloat(document.getElementById('wizard_'+kpi).value)||0;
-        emp.kpis[year][kpi].values[month]=val;
-    });
-    saveData();
-    alert("Daten gespeichert");
-}
-
-// Mitarbeiter Admin
-function addAdminEmployee(){
-    const name=document.getElementById('adminEmployeeName').value.trim();
-    const branch=document.getElementById('adminEmployeeBranch').value.trim();
-    const status=document.getElementById('adminEmployeeStatus').value;
-    if(!name||!branch){alert("Name und Filiale erforderlich");return;}
-    employees.push({name,branch,status,kpis:{}});
-    document.getElementById('adminEmployeeName').value=''; document.getElementById('adminEmployeeBranch').value='';
-    updateEmployeeAdminTable(); updateEmployeeSelect(); updateWizardDropdowns(); saveData();
-}
-
-function updateEmployeeAdminTable(){
-    const c=document.getElementById('employeeAdminTable'); c.innerHTML='';
-    let t=document.createElement('table');
-    let html='<tr><th>Name</th><th>Filiale</th><th>Status</th><th>Löschen</th></tr>';
-    employees.forEach((e,i)=>{
-        html+='<tr><td>'+e.name+'</td><td>'+e.branch+'</td><td><select onchange="updateEmployeeStatus('+i+',this.value)"><option value="aktiv" '+(e.status==='aktiv'?'selected':'')+'>aktiv</option><option value="inaktiv" '+(e.status==='inaktiv'?'selected':'')+'>inaktiv</option></select></td><td><button onclick="deleteEmployee('+i+')">Löschen</button></td></tr>';
-    });
-    t.innerHTML=html; c.appendChild(t);
-}
-
-function updateEmployeeStatus(i,s){employees[i].status=s; saveData(); updateEmployeeSelect(); updateWizardDropdowns();}
-function deleteEmployee(i){employees.splice(i,1); saveData(); updateEmployeeAdminTable(); updateEmployeeSelect(); updateWizardDropdowns();}
-
-// KPI Admin
-function addKPI(){
-    const name=document.getElementById('kpiNameInput').value.trim();
-    const target=parseFloat(document.getElementById('kpiTargetInput').value)||0;
-    if(!name) return;
-    if(!kpiDefinitions.includes(name)) kpiDefinitions.push(name);
-    employees.forEach(emp=>{ for(const year in emp.kpis){ if(!emp.kpis[year][name]) emp.kpis[year][name]={target,values:{}};} });
-    document.getElementById('kpiNameInput').value=''; document.getElementById('kpiTargetInput').value='';
-    updateKPIAdminList(); updateWizardKPIs(); updateEmployeeKPIs(); saveData();
-}
-
-function updateKPIAdminList(){
-    const c=document.getElementById('kpiAdminList'); c.innerHTML='';
-    kpiDefinitions.forEach((k,i)=>{ const div=document.createElement('div'); div.innerHTML=k+' <button onclick="deleteKPI('+i+')">Löschen</button>'; c.appendChild(div);});
-}
-function deleteKPI(i){
-    const kpi=kpiDefinitions[i]; kpiDefinitions.splice(i,1);
-    employees.forEach(e=>{for(const year in e.kpis) delete e.kpis[year][kpi];});
-    updateKPIAdminList(); updateWizardKPIs(); saveData();
-}
-
-// Mitarbeiter Auswahl
-function updateEmployeeSelect(){
-    const sel=document.getElementById('employeeSelect'); sel.innerHTML='';
-    employees.forEach((e,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=e.name; sel.appendChild(o);});
-    const yearSel=document.getElementById('employeeYear'); yearSel.innerHTML='';
-    const now=new Date(); for(let y=now.getFullYear()-5;y<=now.getFullYear()+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===now.getFullYear()) o.selected=true; yearSel.appendChild(o);}
-}
-
-// Charts
-function getRandomColor(){ return '#'+Math.floor(Math.random()*16777215).toString(16);}
-function updateEmployeeChart(emp, year){
-    const labels=monthNames;
-    const datasets=[];
-    kpiDefinitions.forEach(kpi=>{
-        if(!emp.kpis[year][kpi]) return;
-        let data=[]; for(let m=1;m<=12;m++){ data.push(emp.kpis[year][kpi].values[m]||0);}
-        datasets.push({label:kpi,data:data,borderColor:getRandomColor(),fill:false,tension:0.1});
-    });
-    const ctx=document.getElementById('employeeChart').getContext('2d');
-    if(employeeChart) employeeChart.destroy();
-    employeeChart=new Chart(ctx,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,plugins:{legend:{position:'top'}}}});
-}
-
-// Auswertung pro Mitarbeiter
-function generateEvaluation(){
-    const empIndex=document.getElementById('employeeSelect').selectedIndex;
-    const year=document.getElementById('employeeYear').value;
-    if(empIndex<0) return;
-    const emp=employees[empIndex];
-    let html='<table><tr><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr>';
-    kpiDefinitions.forEach(kpi=>{
-        if(!emp.kpis[year][kpi]) emp.kpis[year][kpi]={target:0,values:{}};
-        let sum=0; for(let m=1;m<=12;m++){ sum+=emp.kpis[year][kpi].values[m]||0;}
-        let percent=emp.kpis[year][kpi].target?Math.round(sum/emp.kpis[year][kpi].target*100):0;
-        let status=percent>=100?'Grün':'Rot';
-        html+='<tr><td>'+kpi+'</td><td>'+emp.kpis[year][kpi].target+'</td><td>'+sum+'</td><td>'+percent+'%</td><td class="'+status.toLowerCase()+'">'+status+'</td></tr>';
-    });
-    html+='</table>';
-    document.getElementById('evaluationResult').innerHTML=html;
-}
-
-// Gesamtauswertung
-function generateTotalEvaluation(){
-    const year=document.getElementById('dashboardYear').value;
-    let html='<table><tr><th>Mitarbeiter</th><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr>';
-    employees.forEach(emp=>{
-        kpiDefinitions.forEach(kpi=>{
-            if(!emp.kpis[year] || !emp.kpis[year][kpi]) return;
-            let sum=0; for(let m=1;m<=12;m++) sum+=emp.kpis[year][kpi].values[m]||0;
-            let percent=emp.kpis[year][kpi].target?Math.round(sum/emp.kpis[year][kpi].target*100):0;
-            let status=percent>=100?'Grün':'Rot';
-            html+='<tr><td>'+emp.name+'</td><td>'+kpi+'</td><td>'+emp.kpis[year][kpi].target+'</td><td>'+sum+'</td><td>'+percent+'%</td><td class="'+status.toLowerCase()+'">'+status+'</td></tr>';
-        });
-    });
-    html+='</table>';
-    document.getElementById('totalEvaluationResult').innerHTML=html;
-}
-
-
+  // Select listeners
+  $('#dashboardYear').addEventListener('change', updateDashChart);
+  $('#kpiSelect').addEventListener('change', updateDashChart);
+  $('#employeeSelect').addEventListener('change', updateEmpTable);
+  $('#employeeYear').addEventListener('change', updateEmpTable);
+  $('#editMode').addEventListener('change', updateEmpTable);
+  $('#wizardEmployee').addEventListener('change', wizardRender);
+  $('#wizardYear').addEventListener('change', wizardRender);
+  $('#wizardMonth').addEventListener('change', wizardRender);
+});
 </script>
 </body>
 </html>

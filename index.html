@@ -1,676 +1,695 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MetricHub</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <title>KPI Tracker</title>
   <style>
-    :root{
-      --bg:#f2f2f7;--text:#1c1c1e;--header-bg:rgba(249,249,249,.85);--header-border:rgba(0,0,0,.1);
-      --btn-bg:#007aff;--btn-hover:#0062cc;--btn-text:#fff;
-      --card:#fff;--card-border:rgba(0,0,0,.06);--card-shadow:0 1px 3px rgba(0,0,0,.06);
-      --green:#d4edda;--red:#f8d7da;--border:#e5e5ea;--table-header:#f2f2f7;
-      --input-bg:#fff;--input-border:#c7c7cc;
-      --dropdown-bg:#fff;--dropdown-hover:#f2f2f7;
-      --badge-success:#34c759;--badge-danger:#ff3b30;
-      --tab-active:#007aff;--tab-inactive:#8e8e93;
-      --chart-target:rgba(0,0,0,.08);
+    :root { color-scheme: light; }
+    [data-theme="light"] {
+      --bg: #f5f5f5; --surface: #fff; --primary: #2563eb; --primary-hover: #1d4ed8;
+      --green: #16a34a; --red: #dc2626; --border: #e0e0e0; --text: #1a1a1a;
+      --muted: #6b7280; --header-bg: #1e293b; --header-text: #fff;
+      --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
+      --th-bg: #f8fafc; --rank-bar: #e5e7eb; --sort-active-bg: #eff6ff;
+      --badge-g-bg: #dcfce7; --badge-g-text: #16a34a;
+      --badge-r-bg: #fee2e2; --badge-r-text: #dc2626;
+      --kpi-bg: #eff6ff;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
     }
-    [data-theme="dark"]{
-      --bg:#000;--text:#f5f5f7;--header-bg:rgba(28,28,30,.85);--header-border:rgba(255,255,255,.1);
-      --btn-bg:#0a84ff;--btn-hover:#409cff;--btn-text:#fff;
-      --card:#1c1c1e;--card-border:rgba(255,255,255,.08);--card-shadow:0 1px 4px rgba(0,0,0,.3);
-      --green:#2c5c2f;--red:#5c2c2c;--border:#38383a;--table-header:#2c2c2e;
-      --input-bg:#2c2c2e;--input-border:#48484a;
-      --dropdown-bg:#2c2c2e;--dropdown-hover:#3a3a3c;
-      --badge-success:#30d158;--badge-danger:#ff453a;
-      --tab-active:#0a84ff;--tab-inactive:#98989d;
-      --chart-target:rgba(255,255,255,.08);
-    }
-    @media(prefers-color-scheme:dark){
-      :root:not([data-theme="light"]){
-        --bg:#000;--text:#f5f5f7;--header-bg:rgba(28,28,30,.85);--header-border:rgba(255,255,255,.1);
-        --btn-bg:#0a84ff;--btn-hover:#409cff;--btn-text:#fff;
-        --card:#1c1c1e;--card-border:rgba(255,255,255,.08);--card-shadow:0 1px 4px rgba(0,0,0,.3);
-        --green:#2c5c2f;--red:#5c2c2c;--border:#38383a;--table-header:#2c2c2e;
-        --input-bg:#2c2c2e;--input-border:#48484a;
-        --dropdown-bg:#2c2c2e;--dropdown-hover:#3a3a3c;
-        --badge-success:#30d158;--badge-danger:#ff453a;
-        --tab-active:#0a84ff;--tab-inactive:#98989d;
-        --chart-target:rgba(255,255,255,.08);
-      }
-    }
-    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
-      margin:0;padding:0;background:var(--bg);color:var(--text);font-size:17px;
-      -webkit-font-smoothing:antialiased;
-      padding-bottom:env(safe-area-inset-bottom);
+    [data-theme="dark"] {
+      --bg: #0f172a; --surface: #1e293b; --primary: #60a5fa; --primary-hover: #3b82f6;
+      --green: #22c55e; --red: #ef4444; --border: #334155; --text: #e2e8f0;
+      --muted: #94a3b8; --header-bg: #0f172a; --header-text: #e2e8f0;
+      --gold: #fbbf24; --silver: #64748b; --bronze: #d97706;
+      --th-bg: #1a2332; --rank-bar: #334155; --sort-active-bg: #1e3a5f;
+      --badge-g-bg: #14532d; --badge-g-text: #4ade80;
+      --badge-r-bg: #7f1d1d; --badge-r-text: #fca5a5;
+      --kpi-bg: #1e3a5f;
+      --shadow: 0 1px 3px rgba(0,0,0,.3);
     }
 
-    /* ===== iOS Header (tab bar style) ===== */
-    header{
-      position:sticky;top:0;z-index:100;
-      background:var(--header-bg);
-      backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-      border-bottom:.5px solid var(--header-border);
-      padding:12px 16px;
-      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
-    }
-    header h1{margin:0;font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
-    nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
-    nav button,nav .dropdown-btn{
-      background:transparent;color:var(--tab-inactive);border:none;
-      padding:6px 10px;cursor:pointer;font-size:.85rem;font-weight:500;
-      border-radius:8px;transition:color .2s,background .2s;
-      white-space:nowrap;
-    }
-    nav button:hover,nav .dropdown-btn:hover{background:var(--dropdown-hover);color:var(--text)}
-    nav button:active,nav .dropdown-btn:active{opacity:.6}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; transition: background .2s, color .2s; }
 
-    /* ===== iOS Dropdown ===== */
-    .dropdown{position:relative;display:inline-block}
-    .dropdown-content{
-      display:none;position:absolute;top:calc(100% + 4px);left:0;
-      background:var(--dropdown-bg);min-width:200px;
-      box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;border-radius:12px;overflow:hidden;
-    }
-    .dropdown-content button{
-      background:transparent;color:var(--text);width:100%;text-align:left;
-      padding:12px 16px;border:none;cursor:pointer;font-size:.95rem;
-      transition:background .15s;
-    }
-    .dropdown-content button:active{background:var(--dropdown-hover)}
-    .dropdown:hover .dropdown-content{display:block}
+    header { background: var(--header-bg); color: var(--header-text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: background .2s; }
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    nav button { background: rgba(255,255,255,.12); color: var(--header-text); border: none; padding: 8px 16px; cursor: pointer; border-radius: 6px; font-size: .9rem; transition: background .15s; }
+    nav button:hover { background: rgba(255,255,255,.25); }
+    nav button.active { background: var(--primary); }
 
-    /* ===== Sections / Cards ===== */
-    section{display:none;padding:16px;max-width:960px;margin:0 auto}
-    section.active{display:block}
-    h2{font-size:1.5rem;font-weight:700;margin:0 0 16px;letter-spacing:-.02em}
+    main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
 
-    /* ===== Controls ===== */
-    .controls{
-      display:flex;flex-wrap:wrap;gap:10px;align-items:center;
-      margin-bottom:16px;
-    }
-    label{font-size:.9rem;font-weight:500;color:var(--text)}
+    h2 { font-size: 1.2rem; margin-bottom: 16px; }
 
-    /* ===== iOS Inputs ===== */
-    input[type="text"],input[type="number"],input[type="file"],select{
-      padding:8px 12px;border:.5px solid var(--input-border);border-radius:10px;
-      background:var(--input-bg);color:var(--text);font-size:.95rem;font-family:inherit;
-      transition:border-color .2s;
-    }
-    input[type="text"]:focus,input[type="number"]:focus,select:focus{
-      outline:none;border-color:var(--btn-bg);box-shadow:0 0 0 3px rgba(0,122,255,.15);
-    }
-    select[multiple]{height:140px;min-width:200px;padding:4px}
-    input[type="checkbox"]{accent-color:var(--btn-bg);width:20px;height:20px}
+    .card { background: var(--surface); border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); transition: background .2s, box-shadow .2s; }
+    .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
-    /* ===== iOS Tables ===== */
-    table{
-      width:100%;border-collapse:separate;border-spacing:0;
-      margin-bottom:20px;table-layout:fixed;font-size:.85rem;
-      background:var(--card);border-radius:12px;overflow:hidden;
-      box-shadow:var(--card-shadow);
-      border:.5px solid var(--card-border);
-    }
-    th{
-      background:var(--table-header);font-weight:600;padding:10px 8px;
-      border-bottom:.5px solid var(--border);color:var(--text);font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;
-    }
-    td{
-      border-bottom:.5px solid var(--border);padding:10px 8px;text-align:center;word-wrap:break-word;
-    }
-    tr:last-child td{border-bottom:none}
-    td:last-child{border-right:none}
-    th:first-child,td:first-child{text-align:left;padding-left:12px}
+    input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: .9rem; background: var(--surface); color: var(--text); transition: border-color .15s; }
+    input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
 
-    /* ===== Charts ===== */
-    canvas{
-      max-width:100%;height:350px;margin-bottom:30px;
-      background:var(--card);border-radius:12px;padding:12px;
-      box-shadow:var(--card-shadow);border:.5px solid var(--card-border);
-    }
+    button.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: .9rem; font-weight: 500; transition: background .15s, transform .05s; }
+    button.btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: .85; }
+    .btn-sm { padding: 4px 10px; font-size: .8rem; }
 
-    /* ===== Status Colors ===== */
-    .bg-green{background-color:var(--green)}
-    .bg-red{background-color:var(--red)}
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+    th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .75rem; letter-spacing: .04em; color: var(--muted); }
+    td input { width: 70px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
 
-    /* ===== Badges ===== */
-    .status-badge{padding:4px 10px;border-radius:20px;font-weight:600;font-size:.8rem;display:inline-block}
-    .status-badge.success{background:var(--badge-success);color:#fff}
-    .status-badge.danger{background:var(--badge-danger);color:#fff}
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; }
+    .badge-g { background: var(--badge-g-bg); color: var(--badge-g-text); }
+    .badge-r { background: var(--badge-r-bg); color: var(--badge-r-text); }
 
-    /* ===== iOS Buttons ===== */
-    button:not(nav button):not(.dropdown-btn):not(.dropdown-content button){
-      background:var(--btn-bg);color:var(--btn-text);border:none;
-      padding:10px 18px;border-radius:10px;font-size:.95rem;font-weight:600;
-      cursor:pointer;font-family:inherit;transition:opacity .15s;
-    }
-    button:hover:not(nav button):not(.dropdown-btn):not(.dropdown-content button){opacity:.85}
-    button:active:not(nav button):not(.dropdown-btn):not(.dropdown-content button){opacity:.6}
+    .rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow); transition: background .2s; }
+    .rank-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; background: var(--border); color: var(--muted); flex-shrink: 0; }
+    .rank-1 .rank-num { background: var(--gold); color: #fff; }
+    .rank-2 .rank-num { background: var(--silver); color: #fff; }
+    .rank-3 .rank-num { background: var(--bronze); color: #fff; }
+    .rank-info { flex: 1; }
+    .rank-name { font-weight: 600; }
+    .rank-detail { font-size: .8rem; color: var(--muted); }
+    .rank-bar { height: 8px; border-radius: 4px; background: var(--rank-bar); margin-top: 4px; overflow: hidden; min-width: 120px; }
+    .rank-fill { height: 100%; border-radius: 4px; transition: width .3s; }
 
-    /* Nav action buttons (Import / Export) */
-    nav #importBtn{background:var(--btn-bg)!important;color:#fff!important;font-weight:600;border-radius:8px}
-    nav #exportBtn{background:var(--tab-inactive)!important;color:#fff!important;font-weight:500;border-radius:8px}
+    .sort-toggle { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .sort-toggle button { padding: 6px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; cursor: pointer; font-size: .85rem; transition: background .15s; }
+    .sort-toggle button.active { border-color: var(--primary); background: var(--sort-active-bg); color: var(--primary); }
 
-    /* ===== Print ===== */
-    @media print{body{font-size:10px}canvas{height:200px!important}table{font-size:10px}header,nav,.controls,button:not(.no-print){display:none!important}section{display:block!important;padding:10px}}
-    @media(max-width:600px){nav{flex-direction:column;align-items:stretch;width:100%}.dropdown-content{width:100%;left:0}section{padding:16px 12px}}
-    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0s!important;transition-duration:0s!important}}
+    .kpi-tag { display: inline-block; padding: 4px 10px; background: var(--kpi-bg); border-radius: 12px; font-size: .8rem; margin: 2px; }
+    .kpi-tag .del { cursor: pointer; margin-left: 6px; color: var(--red); font-weight: 700; }
+
+    .empty { text-align: center; color: var(--muted); padding: 32px; }
+    .period-select { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    /* DASHBOARD TABLE */
+    .dash-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .dash-table th, .dash-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+    .dash-table th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; color: var(--muted); text-align: right; white-space: nowrap; }
+    .dash-table th:first-child, .dash-table td:first-child { text-align: left; }
+    .dash-table .name-col { min-width: 140px; text-align: left !important; font-weight: 500; }
+    .dash-table .month-col { min-width: 60px; }
+    .dash-table .total-col { min-width: 70px; font-weight: 700; }
+    .dash-table .target-col { min-width: 70px; }
+    .dash-table .pct-col { min-width: 55px; }
+    .dash-table tr:hover td { background: var(--kpi-bg); }
+    .dash-table tr.sub-header td { background: var(--th-bg); font-weight: 700; font-size: .78rem; }
+    .cell-good { background: #dcfce7 !important; color: #16a34a; font-weight: 600; }
+    .cell-bad { background: #fee2e2 !important; color: #dc2626; }
+    .cell-ok { background: #fef3c7 !important; color: #b45309; }
+    [data-theme="dark"] .cell-good { background: #14532d !important; color: #4ade80; }
+    [data-theme="dark"] .cell-bad { background: #7f1d1d !important; color: #fca5a5; }
+    [data-theme="dark"] .cell-ok { background: #78350f !important; color: #fbbf24; }
+    .dash-summary { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; }
+    .dash-summary-item { text-align: center; }
+    .dash-summary-val { font-size: 1.4rem; font-weight: 700; }
+    .dash-summary-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>MetricHub</h1>
+  <h1>KPI Tracker</h1>
   <nav>
-    <button data-tab="dashboard">Dashboard</button>
-    <button data-tab="employee">Mitarbeiter</button>
-    <button data-tab="wizard">Wizard</button>
-    <div class="dropdown">
-      <button class="dropdown-btn">Systemverwaltung</button>
-      <div class="dropdown-content">
-        <button data-tab="adminEmployees">Mitarbeiterverwaltung</button>
-        <button data-tab="adminKPI">KPI-Verwaltung</button>
-      </div>
-    </div>
-    <button data-tab="evaluation">Auswertung</button>
-    <button id="importBtn" style="background:#17a2b8;">Import</button>
-    <button id="exportBtn" style="background:#6c757d;">Export</button>
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="employees">Mitarbeiter</button>
+    <button data-tab="entry">Dateneingabe</button>
+    <button data-tab="ranking">Auswertung</button>
+    <button id="exportBtn" style="background:rgba(34,197,94,.25);">Export</button>
+    <button id="importBtn" style="background:rgba(139,92,246,.25);">Import</button>
+    <button id="themeBtn" style="font-size:1.1rem;padding:8px 14px;" title="Theme wechseln">&#9728;&#65039;</button>
   </nav>
 </header>
 
-<section id="dashboard" class="active">
-  <h2>Dashboard Gesamt-KPI</h2>
-  <div class="controls">
-    <label for="dashboardYear">Jahr:</label>
-    <select id="dashboardYear"></select>
-    <label for="kpiSelect">KPIs auswählen:</label>
-    <select id="kpiSelect" multiple size="5"></select>
-  </div>
-  <canvas id="dashboardChart"></canvas>
-</section>
-
-<section id="employee">
-  <h2>Mitarbeiter KPIs</h2>
-  <div class="controls">
-    <label for="employeeSelect">Mitarbeiter:</label>
-    <select id="employeeSelect"></select>
-    <label for="employeeYear">Jahr:</label>
-    <select id="employeeYear"></select>
-    <label><input type="checkbox" id="editMode"> Bearbeitungsmodus</label>
-  </div>
-  <div id="employeeKPITable"></div>
-  <canvas id="employeeChart"></canvas>
-  <button class="no-print" id="evalBtn">Auswertung</button>
-  <div id="evaluationResult" style="margin-top:20px;"></div>
-</section>
-
-<section id="wizard">
-  <h2>KPI Wizard</h2>
-  <div id="wizardContainer">
-    <div class="controls">
-      <label for="wizardEmployee">Mitarbeiter:</label>
-      <select id="wizardEmployee"></select>
-      <label for="wizardYear">Jahr:</label>
-      <select id="wizardYear"></select>
-      <label for="wizardMonth">Monat:</label>
-      <select id="wizardMonth"></select>
+<main>
+  <div id="tab-dashboard" class="tab active">
+    <h2>Dashboard</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Jahr</label><select id="dashYear"></select></div>
+        <div class="form-group"><label>KPI</label><select id="dashKpi"></select></div>
+      </div>
     </div>
-    <div id="wizardKPIs" class="controls"></div>
-    <button id="wizardSave">Speichern</button>
+    <div class="card" style="padding:0; overflow-x:auto;">
+      <table class="dash-table" id="dashTable"></table>
+    </div>
+    <div class="dash-summary" id="dashSummary"></div>
   </div>
-</section>
 
-<section id="adminEmployees">
-  <h2>Mitarbeiterverwaltung</h2>
-  <div class="controls">
-    <input type="text" id="adminEmployeeName" placeholder="Name">
-    <input type="text" id="adminEmployeeBranch" placeholder="Filiale">
-    <select id="adminEmployeeStatus"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
-    <button id="addEmpBtn">Hinzufügen</button>
+  <div id="tab-employees" class="tab">
+    <h2>Mitarbeiter & KPI-Ziele verwalten</h2>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="empName" placeholder="Max Mustermann">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="empStatus"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
+        </div>
+        <button class="btn btn-primary" id="addEmpBtn">Mitarbeiter anlegen</button>
+      </div>
+    </div>
+    <div id="empList"></div>
   </div>
-  <div id="employeeAdminTable"></div>
-</section>
 
-<section id="adminKPI">
-  <h2>KPI-Verwaltung</h2>
-  <div class="controls">
-    <input type="text" id="kpiNameInput" placeholder="KPI Name">
-    <input type="number" id="kpiTargetInput" placeholder="Jahresziel">
-    <button id="addKpiBtn">Hinzufügen</button>
+  <div id="tab-entry" class="tab">
+    <h2>Monatliche KPI-Werte erfassen</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Mitarbeiter</label><select id="entryEmp"></select></div>
+        <div class="form-group"><label>Jahr</label><select id="entryYear"></select></div>
+        <div class="form-group"><label>Monat</label><select id="entryMonth"></select></div>
+      </div>
+    </div>
+    <div class="card"><div id="entryTable"></div></div>
+    <button class="btn btn-primary" id="saveEntryBtn">Werte speichern</button>
   </div>
-  <div id="kpiAdminList"></div>
-</section>
 
-<section id="evaluation">
-  <h2>Gesamtauswertung</h2>
-  <button class="no-print" id="totalEvalBtn">Gesamtauswertung druckbar</button>
-  <div id="totalEvaluationResult" style="margin-top:20px;"></div>
-</section>
+  <div id="tab-ranking" class="tab">
+    <h2>Mitarbeiter-Ranking</h2>
+    <div class="card">
+      <div class="period-select">
+        <div class="form-group"><label>Jahr</label><select id="rankYear"></select></div>
+        <div class="form-group"><label>Monat (optional)</label><select id="rankMonth"><option value="">Gesamtjahr</option></select></div>
+        <button class="btn btn-primary" id="rankGoBtn">Auswerten</button>
+      </div>
+      <div class="sort-toggle">
+        <span style="font-size:.85rem;color:var(--muted)">Sortierung:</span>
+        <button class="sort-best active">Bester zuerst</button>
+        <button class="sort-worst">Schlechtester zuerst</button>
+      </div>
+    </div>
+    <div id="rankList"></div>
+  </div>
+</main>
 
 <script>
-const MONTH_NAMES=["01 - Januar","02 - Februar","03 - März","04 - April","05 - Mai","06 - Juni","07 - Juli","08 - August","09 - September","10 - Oktober","11 - November","12 - Dezember"];
-// Stable color palette instead of random() which flickers on every update
-const PALETTE=["#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f","#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ac","#7bb0d0","#e8b040"];
-
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
-// Reusable element for escaping — single allocation, no GC churn
-const _escDiv = document.createElement('div');
-const escapeHtml = s => { _escDiv.textContent = s; return _escDiv.innerHTML; };
-const debounce = (fn, ms=300) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 
-/* ================= THEME (auto-detect) ================= */
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-/* ================= STATE ================= */
-let employees = [], kpiDefinitions = [];
-const targets = {};
-let dashChart, empChart, _dirty = false, _saveTmr;
+/* ================= DATA ================= */
+let employees = []; // {id, name, status, kpis:[{name,target}], values:{year:{month:{kpiName:value}}}}
 
-/* ================= STORAGE ================= */
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
 function save() {
-  localStorage.setItem('metricHubData', JSON.stringify({employees, kpiDefinitions}));
-}
-function scheduleSave() {
-  _dirty = true;
-  clearTimeout(_saveTmr);
-  _saveTmr = setTimeout(() => { save(); _dirty = false; }, 500);
-}
-function loadData() {
-  try {
-    const d = JSON.parse(localStorage.getItem('metricHubData') || '{}');
-    employees = d.employees || [];
-    kpiDefinitions = d.kpiDefinitions || ["Umsatz","Leads","Calls"];
-  } catch { employees = []; kpiDefinitions = ["Umsatz","Leads","Calls"]; }
-  kpiDefinitions.forEach(k => targets[k] ||= 0);
+  localStorage.setItem('kpiTracker', JSON.stringify(employees));
 }
 
-/* ================= UI HELPERS ================= */
-function selectOpts(id, items, labelFn, valFn) {
-  const sel = $(id);
-  if (!sel) return;
-  sel.innerHTML = '';
-  for (let i = 0; i < items.length; i++) {
-    const o = document.createElement('option');
-    o.value = valFn ? valFn(items[i], i) : items[i];
-    o.textContent = labelFn ? labelFn(items[i], i) : items[i];
-    sel.appendChild(o);
-  }
+function load() {
+  try { employees = JSON.parse(localStorage.getItem('kpiTracker')) || []; }
+  catch { employees = []; }
+  employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
 }
 
-function years(sel, defNow) {
-  const y = new Date().getFullYear();
-  const items = Array.from({length: 7}, (_, i) => y - 5 + i);
-  selectOpts(sel, items, null, v => v);
-  if (defNow) sel.value = y;
+function getNow() {
+  const n = new Date();
+  return { y: n.getFullYear(), m: n.getMonth() + 1 };
 }
 
-function months(sel) {
-  const cur = new Date().getMonth() + 1;
-  selectOpts(sel, Array.from({length: 12}, (_, i) => i + 1), null, v => v);
-  sel.value = cur;
+/* ================= THEME ================= */
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('#themeBtn').innerHTML = t === 'dark' ? '&#127769;' : '&#9728;&#65039;';
+  localStorage.setItem('kpiTheme', t);
 }
 
-function kpiColor(i) { return PALETTE[i % PALETTE.length]; }
-
-/* ================= CHARTS ================= */
-function destroyChart(c) { if (c) { c.destroy(); } }
-
-function updateDashChart() {
-  const yr = $('#dashboardYear').value;
-  if (!yr) return;
-  const sel = Array.from($('#kpiSelect').selectedOptions).map(o => o.value);
-  if (typeof Chart === 'undefined') return;
-  const datasets = sel.map((kpi, idx) => {
-    const data = new Array(12).fill(0);
-    for (let e = 0; e < employees.length; e++) {
-      const v = employees[e].kpis?.[yr]?.[kpi]?.values || {};
-      for (let m = 1; m <= 12; m++) data[m - 1] += v[m] || 0;
-    }
-    return { label: kpi, data, borderColor: kpiColor(idx), fill: false, tension: 0.2 };
-  });
-  if (!dashChart) {
-    dashChart = new Chart($('#dashboardChart').getContext('2d'), {
-      type: 'line', data: { labels: MONTH_NAMES, datasets },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
-  } else {
-    dashChart.data.datasets = datasets;
-    dashChart.update('none'); // 'none' skips animation — fastest path
-  }
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 }
 
-function updateEmpChart(emp, yr) {
-  if (typeof Chart === 'undefined') return;
-  const datasets = [];
-  let di = 0;
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const kpi = kpiDefinitions[i];
-    const v = emp.kpis?.[yr]?.[kpi]?.values || {};
-    const data = Array.from({length: 12}, (_, m) => v[m + 1] || 0);
-    if (data.some(x => x > 0)) datasets.push({ label: kpi, data, borderColor: kpiColor(di++), fill: false, tension: 0.2 });
-  }
-  if (!empChart) {
-    empChart = new Chart($('#employeeChart').getContext('2d'), {
-      type: 'line', data: { labels: MONTH_NAMES, datasets },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-    });
-  } else {
-    empChart.data.datasets = datasets;
-    empChart.update('none');
-  }
-}
+// Load saved theme or respect system preference
+(function initTheme() {
+  const saved = localStorage.getItem('kpiTheme');
+  if (saved) { applyTheme(saved); return; }
+  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+})();
 
-function destroyCharts() {
-  destroyChart(dashChart); dashChart = null;
-  destroyChart(empChart); empChart = null;
-}
-
-/* ================= SELECTORS INIT ================= */
-function initSelectors() {
-  years('#dashboardYear', true);
-  years('#employeeYear', true);
-  years('#wizardYear', true);
-  months('#wizardMonth');
-  selectOpts('#kpiSelect', kpiDefinitions);
-  selectOpts('#employeeSelect', employees.map((e, i) => [i, `${e.name} (${e.branch})`]), e => e[1], e => e[0]);
-  selectOpts('#wizardEmployee', employees.map((e, i) => [i, e.name]), e => e[1], e => e[0]);
-}
-
-/* ================= TABS ================= */
-let activeTab = 'dashboard';
-
-function showTab(id) {
-  $$('.section').forEach(s => s.classList.remove('active'));
-  const sec = $(`section[id="${id}"]`);
-  if (!sec) return;
-  sec.classList.add('active');
-  activeTab = id;
-
-  if (id === 'dashboard') updateDashChart();
-  else if (id === 'employee') updateEmpTable();
-  else if (id === 'evaluation') totalEval();
-  else if (id === 'wizard') wizardRender();
-  else if (id === 'adminEmployees') adminEmpRender();
-  else if (id === 'adminKPI') adminKpiRender();
-}
-
-/* ================= EMPLOYEE TABLE ================= */
-function updateEmpTable() {
-  const idx = $('#employeeSelect').value;
-  const yr = $('#employeeYear').value;
-  const edit = $('#editMode').checked;
-  const c = $('#employeeKPITable');
-  if (idx === '' || !yr) { c.innerHTML = '<p>Wählen Sie Mitarbeiter & Jahr.</p>'; return; }
-  const emp = employees[idx];
-  emp.kpis ||= {};
-  emp.kpis[yr] ||= {};
-
-  let h = '<table><thead><tr><th style="width:110px">KPI</th>';
-  for (let m = 0; m < 12; m++) h += '<th>' + MONTH_NAMES[m] + '</th>';
-  h += '</tr></thead><tbody>';
-
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const kpi = kpiDefinitions[i];
-    const kd = emp.kpis[yr][kpi] ||= { target: targets[kpi] || 0, values: {} };
-    h += '<tr><td>' + escapeHtml(kpi) + '</td>';
-    let run = 0;
-    for (let m = 1; m <= 12; m++) {
-      const val = kd.values[m] || 0;
-      run += val;
-      const t = kd.target || 0;
-      const pct = t ? run / (t * (m / 12)) : 0;
-      h += edit
-        ? '<td><input type="number" value="' + val + '" data-emp="' + idx + '" data-year="' + escapeHtml(yr) + '" data-kpi="' + escapeHtml(kpi) + '" data-m="' + m + '" style="width:55px" class="ei"></td>'
-        : '<td class="' + (pct >= 1 ? 'bg-green' : 'bg-red') + '">' + val + '</td>';
-    }
-    h += '</tr>';
-  }
-  h += '</tbody></table>';
-  c.innerHTML = h;
-  updateEmpChart(emp, yr);
-}
-
-/* ================= WIZARD ================= */
-function wizardRender() {
-  const idx = $('#wizardEmployee').value;
-  const yr = $('#wizardYear').value;
-  const mo = $('#wizardMonth').value;
-  const c = $('#wizardKPIs');
-  if (idx === '' || !yr || !mo) { c.innerHTML = '<p>Bitte Felder ausfüllen.</p>'; return; }
-  const emp = employees[idx];
-  emp.kpis ||= {};
-  emp.kpis[yr] ||= {};
-
-  let h = '';
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const kpi = kpiDefinitions[i];
-    const kd = emp.kpis[yr][kpi] ||= { target: targets[kpi] || 0, values: {} };
-    h += '<label for="w_' + i + '">' + escapeHtml(kpi) + ':</label><input type="number" id="w_' + i + '" value="' + (kd.values[mo] || 0) + '">';
-  }
-  c.innerHTML = h;
-}
-
-function wizardSave() {
-  const idx = $('#wizardEmployee').value;
-  const yr = $('#wizardYear').value;
-  const mo = $('#wizardMonth').value;
-  if (idx === '' || !yr || !mo) return alert('Alle Felder ausfüllen.');
-  const emp = employees[idx];
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const v = parseFloat($('#w_' + i).value) || 0;
-    emp.kpis[yr][kpiDefinitions[i]].values[mo] = v;
-  }
-  scheduleSave();
-  alert('Gespeichert.');
-}
-
-/* ================= ADMIN EMPLOYEES ================= */
-function adminEmpRender() {
-  const c = $('#employeeAdminTable');
-  if (!employees.length) { c.innerHTML = '<p>Keine Mitarbeiter.</p>'; return; }
-  let h = '<table><thead><tr><th>Name</th><th>Filiale</th><th>Status</th><th>Aktion</th></tr></thead><tbody>';
-  for (let i = 0; i < employees.length; i++) {
-    const e = employees[i];
-    h += '<tr><td>' + escapeHtml(e.name) + '</td><td>' + escapeHtml(e.branch) + '</td>'
-      + '<td><select data-i="' + i + '" class="ss"><option value="aktiv"' + (e.status === 'aktiv' ? ' selected' : '') + '>aktiv</option><option value="inaktiv"' + (e.status === 'inaktiv' ? ' selected' : '') + '>inaktiv</option></select></td>'
-      + '<td><button data-i="' + i + '" class="de" style="background:#dc3545;color:#fff;padding:4px 8px;border-radius:4px;border:none;cursor:pointer">Löschen</button></td></tr>';
-  }
-  h += '</tbody></table>';
-  c.innerHTML = h;
-}
-
-/* ================= ADMIN KPIs ================= */
-function adminKpiRender() {
-  const c = $('#kpiAdminList');
-  if (!kpiDefinitions.length) { c.innerHTML = '<p>Keine KPIs.</p>'; return; }
-  let h = '<table><thead><tr><th>KPI</th><th>Standardziel</th><th>Aktion</th></tr></thead><tbody>';
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const k = kpiDefinitions[i];
-    h += '<tr><td>' + escapeHtml(k) + '</td><td>' + (targets[k] || 0) + '</td><td><button data-i="' + i + '" class="dk" style="background:#dc3545;color:#fff;padding:4px 8px;border-radius:4px;border:none;cursor:pointer">Löschen</button></td></tr>';
-  }
-  h += '</tbody></table>';
-  c.innerHTML = h;
-}
-
-/* ================= EVALUATIONS ================= */
-function empEval() {
-  const idx = $('#employeeSelect').value;
-  const yr = $('#employeeYear').value;
-  const c = $('#evaluationResult');
-  if (idx === '' || !yr) { c.innerHTML = '<p>Daten unvollständig.</p>'; return; }
-  const emp = employees[idx];
-  let h = '<table><thead><tr><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr></thead><tbody>';
-  for (let i = 0; i < kpiDefinitions.length; i++) {
-    const kpi = kpiDefinitions[i];
-    const d = emp.kpis?.[yr]?.[kpi];
-    const t = d?.target || 0;
-    let sum = 0; const keys = Object.keys(d?.values || {});
-    for (let j = 0; j < keys.length; j++) sum += +d.values[keys[j]] || 0;
-    const pct = t ? Math.round(sum / t * 100) : 0;
-    h += '<tr><td>' + escapeHtml(kpi) + '</td><td>' + t + '</td><td>' + sum + '</td><td>' + pct + '%</td><td><span class="status-badge ' + (pct >= 100 ? 'success' : 'danger') + '">' + (pct >= 100 ? 'Grün' : 'Rot') + '</span></td></tr>';
-  }
-  h += '</tbody></table>';
-  c.innerHTML = h;
-}
-
-function totalEval() {
-  const yr = $('#dashboardYear').value || new Date().getFullYear();
-  const c = $('#totalEvaluationResult');
-  if (!employees.length) { c.innerHTML = '<p>Keine Daten.</p>'; return; }
-  let h = '<table><thead><tr><th>MA</th><th>Filiale</th><th>KPI</th><th>Ziel</th><th>Erreicht</th><th>%</th><th>Status</th></tr></thead><tbody>';
-  for (let e = 0; e < employees.length; e++) {
-    const emp = employees[e];
-    if (emp.status !== 'aktiv') continue;
-    for (let i = 0; i < kpiDefinitions.length; i++) {
-      const kpi = kpiDefinitions[i];
-      const d = emp.kpis?.[yr]?.[kpi];
-      if (!d) continue;
-      const t = d.target || 0;
-      let sum = 0; const keys = Object.keys(d.values || {});
-      for (let j = 0; j < keys.length; j++) sum += +d.values[keys[j]] || 0;
-      const pct = t ? Math.round(sum / t * 100) : 0;
-      h += '<tr><td>' + escapeHtml(emp.name) + '</td><td>' + escapeHtml(emp.branch) + '</td><td>' + escapeHtml(kpi) + '</td><td>' + t + '</td><td>' + sum + '</td><td>' + pct + '%</td><td><span class="status-badge ' + (pct >= 100 ? 'success' : 'danger') + '">' + (pct >= 100 ? 'Grün' : 'Rot') + '</span></td></tr>';
-    }
-  }
-  h += '</tbody></table>';
-  c.innerHTML = h;
-}
+$('#themeBtn').addEventListener('click', toggleTheme);
 
 /* ================= IMPORT / EXPORT ================= */
 function exportData() {
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const ts = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '-' + pad(now.getHours()) + '-' + pad(now.getMinutes()) + '-' + pad(now.getSeconds());
-  const blob = new Blob([JSON.stringify({employees, kpiDefinitions}, null, 2)], {type: 'application/json'});
+  const blob = new Blob([JSON.stringify(employees, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'metricHub_' + ts + '.json';
+  a.download = 'kpi-tracker_' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 function importData() {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.type = 'file'; inp.accept = '.json';
   inp.onchange = async e => {
     const f = e.target.files[0];
     if (!f) return;
     try {
       const txt = await f.text();
       const d = JSON.parse(txt);
-      if (!Array.isArray(d.employees) || !Array.isArray(d.kpiDefinitions)) throw 0;
-      if (prompt('ACHTUNG: Alle lokalen Daten werden überschrieben!\n\nGeben Sie "yes" ein:').trim().toLowerCase() !== 'yes') return alert('Abgebrochen.');
-      employees = d.employees; kpiDefinitions = d.kpiDefinitions;
-      Object.keys(targets).forEach(k => delete targets[k]);
-      kpiDefinitions.forEach(k => targets[k] ||= 0);
-      localStorage.setItem('metricHubData', JSON.stringify(d));
-      destroyCharts();
-      initSelectors(); showTab('dashboard');
-      alert('Import erfolgreich.');
-    } catch { alert('Fehler: Ungültige Datei.'); }
+      if (!Array.isArray(d)) throw 0;
+      if (confirm('Alle aktuellen Daten werden überschrieben. Fortfahren?')) {
+        employees = d;
+        employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
+        save();
+        renderEmpList();
+        alert('Import erfolgreich.');
+      }
+    } catch { alert('Ungültige Datei.'); }
   };
   inp.click();
 }
 
-/* ================= EVENTS ================= */
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  initSelectors();
-  showTab('dashboard');
+$('#exportBtn').addEventListener('click', exportData);
+$('#importBtn').addEventListener('click', importData);
 
-  // Tab navigation — event delegation on nav
-  $('nav').addEventListener('click', e => {
-    const tab = e.target.dataset?.tab;
-    if (tab) showTab(tab);
-  });
-
-  // Import/Export
-  $('#importBtn').addEventListener('click', importData);
-  $('#exportBtn').addEventListener('click', exportData);
-
-  // Employee table inputs — inline cell update, no re-render
-  $('#employeeKPITable').addEventListener('input', e => {
-    const inp = e.target;
-    if (!inp.classList.contains('ei')) return;
-    const emp = employees[inp.dataset.emp];
-    const kd = emp.kpis[inp.dataset.year][inp.dataset.kpi];
-    kd.values[inp.dataset.m] = parseFloat(inp.value) || 0;
-    scheduleSave();
-    // In-place color update — no DOM rebuild
-    let run = 0; const keys = Object.keys(kd.values);
-    for (let i = 0; i < keys.length; i++) run += +kd.values[keys[i]] || 0;
-    const t = kd.target || 0;
-    const mN = parseInt(inp.dataset.m);
-    const pct = t ? run / (t * (mN / 12)) : 0;
-    inp.parentElement.className = pct >= 1 ? 'bg-green' : 'bg-red';
-  });
-
-  // Status select delegation
-  $('#employeeAdminTable').addEventListener('change', e => {
-    if (e.target.classList.contains('ss')) {
-      employees[e.target.dataset.i].status = e.target.value;
-      scheduleSave();
+/* ================= TABS ================= */
+$$('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'dashboard' || btn.dataset.tab === 'employees' || btn.dataset.tab === 'entry' || btn.dataset.tab === 'ranking') {
+      $$('#nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $$('.tab').forEach(t => t.classList.remove('active'));
+      $('#tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'dashboard') initializeDashboard();
+      if (btn.dataset.tab === 'employees') renderEmpList();
+      if (btn.dataset.tab === 'entry') populateEntrySelectors();
+      if (btn.dataset.tab === 'ranking') populateRankSelectors();
     }
   });
-
-  // Delete delegation
-  document.addEventListener('click', e => {
-    if (e.target.classList.contains('de')) {
-      if (!confirm('"' + employees[e.target.dataset.i].name + '" löschen?')) return;
-      employees.splice(e.target.dataset.i, 1);
-      scheduleSave(); initSelectors(); adminEmpRender();
-    }
-    if (e.target.classList.contains('dk')) {
-      const k = kpiDefinitions[e.target.dataset.i];
-      if (!confirm('KPI "' + k + '" löschen?')) return;
-      kpiDefinitions.splice(e.target.dataset.i, 1);
-      delete targets[k];
-      for (let e = 0; e < employees.length; e++) {
-        if (employees[e].kpis) {
-          for (const yr in employees[e].kpis) delete employees[e].kpis[yr][k];
-        }
-      }
-      scheduleSave(); initSelectors(); adminKpiRender();
-    }
-  });
-
-  // Wizard save
-  $('#wizardSave').addEventListener('click', wizardSave);
-  $('#evalBtn').addEventListener('click', empEval);
-  $('#totalEvalBtn').addEventListener('click', totalEval);
-  $('#addEmpBtn').addEventListener('click', () => {
-    const n = $('#adminEmployeeName').value.trim();
-    const b = $('#adminEmployeeBranch').value.trim();
-    if (!n || !b) return alert('Name & Filiale nötig.');
-    employees.push({name: n, branch: b, status: $('#adminEmployeeStatus').value, kpis: {}});
-    $('#adminEmployeeName').value = ''; $('#adminEmployeeBranch').value = '';
-    scheduleSave(); initSelectors(); adminEmpRender();
-  });
-  $('#addKpiBtn').addEventListener('click', () => {
-    const n = $('#kpiNameInput').value.trim();
-    if (!n) return alert('Name nötig.');
-    if (kpiDefinitions.includes(n)) return alert('Existiert bereits.');
-    kpiDefinitions.push(n);
-    targets[n] = parseFloat($('#kpiTargetInput').value) || 0;
-    $('#kpiNameInput').value = ''; $('#kpiTargetInput').value = '';
-    scheduleSave(); initSelectors(); adminKpiRender(); updateDashChart();
-  });
-
-  // Select listeners
-  $('#dashboardYear').addEventListener('change', updateDashChart);
-  $('#kpiSelect').addEventListener('change', updateDashChart);
-  $('#employeeSelect').addEventListener('change', updateEmpTable);
-  $('#employeeYear').addEventListener('change', updateEmpTable);
-  $('#editMode').addEventListener('change', updateEmpTable);
-  $('#wizardEmployee').addEventListener('change', wizardRender);
-  $('#wizardYear').addEventListener('change', wizardRender);
-  $('#wizardMonth').addEventListener('change', wizardRender);
 });
+
+/* ================= DASHBOARD ================= */
+function initializeDashboard() {
+  fillYears('#dashYear');
+  const allKpiNames = [...new Set(employees.flatMap(e => e.kpis.map(k => k.name)))];
+  fillSelect('#dashKpi', allKpiNames.map(k => ({ v: k, l: k })));
+  if (allKpiNames.length) $('#dashKpi').value = allKpiNames[0];
+  renderDashboardTable();
+}
+
+function renderDashboardTable() {
+  const yr = $('#dashYear').value;
+  const kpiName = $('#dashKpi').value;
+  const tbl = $('#dashTable');
+  const sum = $('#dashSummary');
+  if (!yr || !kpiName || !employees.length) {
+    tbl.innerHTML = '<div class="empty">Keine Daten.</div>';
+    sum.innerHTML = '';
+    return;
+  }
+
+  const now = getNow();
+  const curMonth = now.m;
+  const progress = curMonth / 12;
+  const monthLabels = MONTHS.map(m => m.replace(/^\d+ - /, '').slice(0, 3));
+
+  let html = '<thead><tr><th class="name-col">Mitarbeiter</th>';
+  for (let i = 1; i <= 12; i++) html += '<th class="month-col">' + monthLabels[i - 1] + '</th>';
+  html += '<th class="total-col">Summe</th><th class="target-col">Ziel</th><th class="pct-col">%</th><th class="sol-col">Im Soll</th></tr></thead><tbody>';
+
+  let grandTotal = 0, grandTarget = 0;
+  const activeEmployees = employees.filter(e => e.status === 'aktiv');
+  const inactiveEmployees = employees.filter(e => e.status === 'inaktiv');
+
+  activeEmployees.forEach(emp => {
+    const kpi = emp.kpis.find(k => k.name === kpiName);
+    const target = kpi ? kpi.target : 0;
+    if (target > 0) grandTarget += target;
+    html += '<tr><td class="name-col">' + esc(emp.name) + '</td>';
+    let rowSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const hasValue = emp.values?.[yr]?.[m]?.[kpiName] !== undefined;
+      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
+      if (hasValue && val > 0) rowSum += val;
+      const sollBis = target / 12 * m; // Jahresziel / 12 * Monat
+      let cls = '';
+      // Färben wenn Wert vorhanden: basierend auf kumuliertem Soll-Vergleich
+      if (hasValue && val > 0) {
+        if (sollBis > 0 && rowSum >= sollBis) cls = 'cell-good';
+        else cls = 'cell-bad';
+      }
+      html += '<td class="' + cls + '">' + (val ? round(val) : '') + '</td>';
+    }
+    grandTotal += rowSum;
+    const pct = target ? Math.round(rowSum / target * 100) : 0;
+    const sollBisNow = target / 12 * curMonth;
+    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
+    html += '<td class="total-col">' + round(rowSum) + '</td>';
+    html += '<td class="target-col">' + round(target) + '</td>';
+    html += '<td class="pct-col' + (pct >= 100 ? ' cell-good' : pct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + pct + '%</td>';
+    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  });
+
+  // Inactive employees (greyed out)
+  inactiveEmployees.forEach(emp => {
+    const kpi = emp.kpis.find(k => k.name === kpiName);
+    const target = kpi ? kpi.target : 0;
+    html += '<tr style="opacity:.5"><td class="name-col">' + esc(emp.name) + ' <em style="color:var(--muted)">(inaktiv)</em></td>';
+    let rowSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
+      rowSum += val;
+      html += '<td>' + (val ? round(val) : '') + '</td>';
+    }
+    grandTotal += rowSum;
+    const pct = target ? Math.round(rowSum / target * 100) : 0;
+    const sollBisNow = target / 12 * curMonth;
+    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
+    html += '<td class="total-col">' + round(rowSum) + '</td>';
+    html += '<td class="target-col">' + round(target) + '</td>';
+    html += '<td class="pct-col">' + pct + '%</td>';
+    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  });
+
+  // Gesamt row
+  if (grandTarget > 0) {
+    const grandPct = Math.round(grandTotal / grandTarget * 100);
+    const imSollGesamt = (grandTarget / 12 * curMonth) > 0 && grandTotal >= grandTarget / 12 * curMonth;
+    html += '<tr class="sub-header"><td class="name-col">GESAMT</td>';
+    let runSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      runSum += (grandTarget / 12);
+      html += '<td style="color:var(--muted)">' + round(grandTarget / 12) + '</td>';
+    }
+    html += '<td class="total-col">' + round(grandTotal) + '</td>';
+    html += '<td class="target-col">' + round(grandTarget) + '</td>';
+    html += '<td class="pct-col' + (grandPct >= 100 ? ' cell-good' : grandPct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + grandPct + '%</td>';
+    html += '<td style="text-align:center">' + (imSollGesamt ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
+  }
+
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  // Summary
+  const sollBis = grandTarget * progress;
+  sum.innerHTML =
+    '<div class="dash-summary-item"><div class="dash-summary-val" style="color:' + (grandPct >= 100 ? 'var(--green)' : 'var(--red)') + '">' + grandPct + '%</div><div class="dash-summary-label">Erfüllung</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal) + '</div><div class="dash-summary-label">Erreicht</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTarget) + '</div><div class="dash-summary-label">Jahresziel</div></div>' +
+    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal - sollBis) + '</div><div class="dash-summary-label">Abweichung zum Soll (' + round(sollBis) + ')</div></div>';
+}
+
+$('#dashYear').addEventListener('change', renderDashboardTable);
+$('#dashKpi').addEventListener('change', renderDashboardTable);
+
+/* ================= EMPLOYEE MGMT ================= */
+function renderEmpList() {
+  const c = $('#empList');
+  if (!employees.length) { c.innerHTML = '<div class="empty">Noch keine Mitarbeiter angelegt.</div>'; return; }
+
+  let html = '';
+  employees.forEach(emp => {
+    const kpiTags = emp.kpis.map((k, i) =>
+      `<span class="kpi-tag">${esc(k.name)} (Ziel: ${k.target})<span class="del" data-emp="${emp.id}" data-i="${i}">&times;</span></span>`
+    ).join('');
+    const sLabel = emp.status === 'aktiv'
+      ? '<span class="badge badge-g" style="cursor:pointer" data-status="' + emp.id + '">aktiv</span>'
+      : '<span class="badge badge-r" style="cursor:pointer" data-status="' + emp.id + '">inaktiv</span>';
+
+    html += `<div class="card" style="opacity:${emp.status === 'inaktiv' ? '.55' : '1'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <strong>${esc(emp.name)}</strong>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${sLabel}
+          <button class="btn btn-danger btn-sm" data-del="${emp.id}">Löschen</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">${kpiTags || '<span style="color:var(--muted);font-size:.85rem">Keine KPIs definiert</span>'}</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>KPI Name</label>
+          <input type="text" id="kpiName_${emp.id}" placeholder="z.B. Umsatz">
+        </div>
+        <div class="form-group">
+          <label>Jahresziel</label>
+          <input type="number" id="kpiTarget_${emp.id}" placeholder="1000">
+        </div>
+        <button class="btn btn-primary btn-sm" data-add-kpi="${emp.id}">+</button>
+      </div>
+    </div>`;
+  });
+  c.innerHTML = html;
+}
+
+function addEmployee() {
+  const name = $('#empName').value.trim();
+  if (!name) return alert('Name ausfüllen.');
+  const status = $('#empStatus').value;
+  employees.push({ id: genId(), name, status, kpis: [], values: {} });
+  $('#empName').value = '';
+  save(); renderEmpList();
+}
+
+function addKpi(empId) {
+  const nameInput = $('#kpiName_' + empId);
+  const targetInput = $('#kpiTarget_' + empId);
+  const name = nameInput.value.trim();
+  const target = parseFloat(targetInput.value) || 0;
+  if (!name) return alert('KPI-Name ausfüllen.');
+  const emp = employees.find(e => e.id === empId);
+  if (emp.kpis.some(k => k.name === name)) return alert('KPI existiert bereits.');
+  emp.kpis.push({ name, target });
+  nameInput.value = '';
+  targetInput.value = '';
+  save(); renderEmpList();
+}
+
+function removeKpi(empId, idx) {
+  const emp = employees.find(e => e.id === empId);
+  const removed = emp.kpis[idx].name;
+  emp.kpis.splice(idx, 1);
+  for (const yr in emp.values) {
+    for (const mo in emp.values[yr]) {
+      delete emp.values[yr][mo][removed];
+    }
+  }
+  save(); renderEmpList();
+}
+
+function deleteEmp(id) {
+  if (!confirm('Mitarbeiter wirklich löschen?')) return;
+  employees = employees.filter(e => e.id !== id);
+  save(); renderEmpList();
+}
+
+function toggleStatus(id) {
+  const emp = employees.find(e => e.id === id);
+  emp.status = emp.status === 'aktiv' ? 'inaktiv' : 'aktiv';
+  save(); renderEmpList();
+}
+
+$('#empList').addEventListener('click', e => {
+  if (e.target.dataset.del) deleteEmp(e.target.dataset.del);
+  if (e.target.dataset.addKpi) addKpi(e.target.dataset.addKpi);
+  if (e.target.dataset.emp) removeKpi(e.target.dataset.emp, +e.target.dataset.i);
+  if (e.target.dataset.status) toggleStatus(e.target.dataset.status);
+});
+
+$('#addEmpBtn').addEventListener('click', addEmployee);
+
+/* ================= ENTRY ================= */
+function populateEntrySelectors() {
+  fillSelect('#entryEmp', employees.filter(e => e.status === 'aktiv').map(e => ({ v: e.id, l: e.name })));
+  fillYears('#entryYear');
+  fillMonths('#entryMonth');
+  renderEntryTable();
+}
+
+function renderEntryTable() {
+  const empId = $('#entryEmp').value;
+  const yr = $('#entryYear').value;
+  const mo = $('#entryMonth').value;
+  const c = $('#entryTable');
+  if (!empId || !yr || !mo) { c.innerHTML = '<div class="empty">Bitte alle Felder auswählen.</div>'; return; }
+
+  const emp = employees.find(e => e.id === empId);
+  if (!emp.kpis.length) { c.innerHTML = '<div class="empty">Keine KPIs für diesen Mitarbeiter definiert.</div>'; return; }
+
+  const vals = emp.values?.[yr]?.[mo] || {};
+
+  let html = '<table><thead><tr><th style="text-align:left">KPI</th><th>Jahresziel</th><th>Wert</th><th>Summe (Jan\u2013' + MONTHS[+mo - 1] + ')</th><th>Erfüllung</th></tr></thead><tbody>';
+  emp.kpis.forEach(kpi => {
+    const val = vals[kpi.name] ?? '';
+    let runSum = 0;
+    for (let m = 1; m <= 12; m++) {
+      runSum += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
+    }
+    const pct = kpi.target ? Math.round(runSum / kpi.target * 100) : 0;
+    const badge = pct >= 100 ? 'badge-g' : 'badge-r';
+
+    html += `<tr>
+      <td style="text-align:left;font-weight:500">${esc(kpi.name)}</td>
+      <td>${kpi.target}</td>
+      <td><input type="number" class="entry-input" data-kpi="${esc(kpi.name)}" value="${val}" min="0" step="any"></td>
+      <td>${runSum}</td>
+      <td><span class="badge ${badge}">${pct}%</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  c.innerHTML = html;
+}
+
+$('#entryEmp').addEventListener('change', renderEntryTable);
+$('#entryYear').addEventListener('change', renderEntryTable);
+$('#entryMonth').addEventListener('change', renderEntryTable);
+
+$('#saveEntryBtn').addEventListener('click', () => {
+  const empId = $('#entryEmp').value;
+  const yr = $('#entryYear').value;
+  const mo = $('#entryMonth').value;
+  if (!empId || !yr || !mo) return alert('Bitte alle Felder auswählen.');
+
+  const emp = employees.find(e => e.id === empId);
+  emp.values[yr] ||= {};
+  emp.values[yr][mo] ||= {};
+
+  $$('.entry-input').forEach(inp => {
+    emp.values[yr][mo][inp.dataset.kpi] = parseFloat(inp.value) || 0;
+  });
+
+  save();
+  renderEntryTable();
+  alert('Werte gespeichert!');
+});
+
+/* ================= RANKING ================= */
+let rankDesc = true;
+
+function populateRankSelectors() {
+  fillYears('#rankYear');
+  fillMonths('#rankMonth', true);
+}
+
+function calcScores(yr, mo) {
+  const results = [];
+  employees.forEach(emp => {
+    if (!emp.kpis.length) return;
+    let totalPct = 0, count = 0;
+
+    emp.kpis.forEach(kpi => {
+      let achieved = 0;
+      if (mo) {
+        // single month: show value for that month vs monthly target (annual target / 12)
+        achieved = emp.values?.[yr]?.[mo]?.[kpi.name] || 0;
+        const monthlyTarget = kpi.target / 12;
+        const pct = monthlyTarget > 0 ? achieved / monthlyTarget * 100 : 0;
+        totalPct += pct;
+      } else {
+        // full year
+        for (let m = 1; m <= 12; m++) {
+          achieved += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
+        }
+        const pct = kpi.target > 0 ? achieved / kpi.target * 100 : 0;
+        totalPct += pct;
+      }
+      count++;
+    });
+
+    const avgPct = count > 0 ? totalPct / count : 0;
+    results.push({ emp, score: avgPct, kpisCount: count });
+  });
+
+  results.sort((a, b) => rankDesc ? b.score - a.score : a.score - b.score);
+  return results;
+}
+
+function renderRanking() {
+  const yr = $('#rankYear').value;
+  const mo = $('#rankMonth').value;
+  const c = $('#rankList');
+  if (!yr) { c.innerHTML = '<div class="empty">Jahr auswählen.</div>'; return; }
+
+  const results = calcScores(yr, mo);
+  if (!results.length) { c.innerHTML = '<div class="empty">Keine Daten vorhanden.</div>'; return; }
+
+  let html = '';
+  results.forEach((r, idx) => {
+    const fillPct = Math.min(r.score, 100);
+    const barColor = r.score >= 100 ? 'var(--green)' : r.score >= 50 ? 'var(--gold)' : 'var(--red)';
+    const sTag = r.emp.status === 'inaktiv' ? ' <span class="badge badge-r">inaktiv</span>' : '';
+
+    html += `<div class="rank-row rank-${idx + 1}">
+      <div class="rank-num">${idx + 1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${esc(r.emp.name)}${sTag}</div>
+        <div class="rank-detail">Ø Erfüllung: ${r.score.toFixed(1)}% (${r.kpisCount} KPIs)</div>
+        <div class="rank-bar"><div class="rank-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
+      </div>
+    </div>`;
+  });
+  c.innerHTML = html;
+}
+
+$('.sort-best').addEventListener('click', function() {
+  rankDesc = true;
+  this.classList.add('active');
+  $('.sort-worst').classList.remove('active');
+  renderRanking();
+});
+$('.sort-worst').addEventListener('click', function() {
+  rankDesc = false;
+  this.classList.add('active');
+  $('.sort-best').classList.remove('active');
+  renderRanking();
+});
+$('#rankGoBtn').addEventListener('click', renderRanking);
+
+/* ================= HELPERS ================= */
+function fillSelect(sel, items) {
+  const el = $(sel);
+  el.innerHTML = items.map(i => `<option value="${i.v}">${esc(i.l)}</option>`).join('');
+}
+
+function fillYears(sel) {
+  const now = new Date().getFullYear();
+  const items = Array.from({ length: 7 }, (_, i) => {
+    const y = now - 3 + i;
+    return { v: y, l: y };
+  });
+  fillSelect(sel, items);
+  $(sel).value = now;
+}
+
+function fillMonths(sel, empty) {
+  const now = new Date().getMonth() + 1;
+  const items = empty ? [{ v: '', l: 'Gesamtjahr' }] : [];
+  MONTHS.forEach((name, i) => items.push({ v: i + 1, l: name }));
+  fillSelect(sel, items);
+  if (empty) {
+    // keep old value for ranking (Gesamtjahr), or default to Gesamtjahr
+  } else {
+    $(sel).value = now;
+  }
+}
+
+function fillMonths2(sel) {
+  const now = getNow();
+  const items = MONTHS.map((name, i) => ({ v: i + 1, l: name }));
+  fillSelect(sel, items);
+  $(sel).value = now.m;
+}
+
+const escDiv = document.createElement('div');
+function esc(s) { escDiv.textContent = s; return escDiv.innerHTML; }
+function round(n) { return Math.round(n * 100) / 100; }
+
+/* ================= INIT ================= */
+load();
+initializeDashboard();
 </script>
+
 </body>
 </html>

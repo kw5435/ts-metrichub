@@ -610,6 +610,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <label style="color:var(--text);font-weight:700;display:block;margin-bottom:8px;font-size:1rem">Changelog</label>
 
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <label style="color:var(--primary);font-weight:600;display:block;margin-bottom:4px;font-size:.92rem">v1.2 &ndash; 2026-04-06 (Berechnungsfix)</label>
+        <span style="font-size:.85rem;color:var(--muted);font-weight:400;display:block;line-height:1.6">
+          <strong>Bugfix:</strong> Kumulierte %-Berechnung ber&uuml;cksichtigt jetzt korrekt das Start-/Enddatum von Mitarbeitern &ndash; inaktive Monate werden nicht mehr mit 0 Ist, aber vollem Ziel gez&auml;hlt<br>
+          <strong>Bugfix:</strong> Prozent wird nun als Gesamt-Ist / Gesamt-Ziel basierend auf aktiven Monaten berechnet (nicht mehr f&uuml;r alle Monate pauschal) &ndash; z.B. f&uuml;r Mitarbeiter die erst im M&auml;rz starten<br>
+          <strong>Darstellung:</strong> Druckansicht zeigt bei Mitarbeitern mit eingeschr&auml;nktem Zeitraum zus&auml;tzlich die Anzahl aktiver Monate im Zwischenstand an (z.B. "Jan-M&auml;r (2 aktive Monate)")
+        </span>
+      </div>
+      <div style="margin-top:4px;border-top:1px solid var(--border);padding-top:12px">
         <label style="color:var(--primary);font-weight:600;display:block;margin-bottom:4px;font-size:.92rem">v1.1 &ndash; 2026-04-06 (Pflege-Update)</label>
         <span style="font-size:.85rem;color:var(--muted);font-weight:400;display:block;line-height:1.6">
           <strong>Dashboard:</strong> Summary-Karten, Top-5-Rangliste und Mitarbeiter-Tabelle zeigen jetzt kumulierte Werte (Jan–gew&auml;hlter Monat) statt nur den Einzelmonat<br>
@@ -832,20 +840,20 @@ function renderDashboard(){
   var kpiFilter=app.dashKpi;
   var employees=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)});
   var unit=getActiveUnit();
-  /* Kumulierte Werte: Jan–gewählter Monat */
-  var cumulScores=employees.map(function(emp){var ct=0,ctg=0;for(var mm=1;mm<=app.month;mm++){ct+=getTotalForMonth(emp,app.year,mm,kpiFilter);ctg+=getEmpMonthTarget(emp.id,kpiFilter)}var cp=ctg?Math.round(ct/ctg*100):0;return{emp:emp,total:ct,target:ctg,diff:ct-ctg,pct:cp}});
+  /* Kumulierte Werte: Jan–gewählter Monat (nur aktive Monate) */
+  var cumulScores=employees.map(function(emp){var ct=0,ctg=0,moCnt=0;for(var mm=1;mm<=app.month;mm++){if(isActiveInMonth(emp,app.year,mm)){ct+=getTotalForMonth(emp,app.year,mm,kpiFilter);ctg+=getEmpMonthTarget(emp.id,kpiFilter);moCnt++}}var cp=ctg?Math.round(ct/ctg*100):0;return{emp:emp,total:ct,target:ctg,diff:ct-ctg,pct:cp,moCnt:moCnt}});
   cumulScores.sort(function(a,b){return b.pct-a.pct});
 
   /* Summary-Karten: kumulierte Sicht */
-  var cumulTotR=0,cumulTotT=0;
-  cumulScores.forEach(function(s){cumulTotR+=s.total;cumulTotT+=s.target});
+  var cumulTotR=0,cumulTotT=0,totMo=0;
+  cumulScores.forEach(function(s){cumulTotR+=s.total;cumulTotT+=s.target;totMo+=s.moCnt});
   var cumulPct=cumulTotT?Math.round(cumulTotR/cumulTotT*100):0;
   var cumulDiff=cumulTotR-cumulTotT;
-  var cumulAvg=employees.length?Math.round(cumulTotR/app.month):0;
+  var avgMo=totMo?Math.round(cumulTotR/totMo):0;
   $('#dashSummary').innerHTML='<div class="summary-card'+(cumulPct>=100?' green':'')+'"><div class="s-label">Gesamtziel Jan–'+MONTHS[app.month-1]+'</div><div class="s-value">'+fmtVal(cumulTotT,unit)+'</div><div class="s-sub" style="color:'+(cumulDiff>=0?'var(--green)':'var(--red)')+'">'+(cumulDiff>=0?'+':'')+fmtVal(cumulDiff,unit)+'</div></div>'
     +'<div class="summary-card"><div class="s-label">Erreicht Jan–'+MONTHS[app.month-1]+'</div><div class="s-value">'+fmtVal(cumulTotR,unit)+'</div><div class="s-sub" style="color:'+(cumulPct>=100?'var(--green)':'var(--red)')+'">'+cumulPct+'% Erf\u00fcllung</div></div>'
     +'<div class="summary-card"><div class="s-label">Mitarbeiter</div><div class="s-value">'+employees.length+'</div><div class="s-sub" style="color:var(--muted)">Aktiv</div></div>'
-    +'<div class="summary-card"><div class="s-label">Pro Monat Ø</div><div class="s-value">'+fmtVal(cumulAvg,unit)+'</div><div class="s-sub" style="color:var(--muted)">Seit Jan</div></div>';
+    +'<div class="summary-card"><div class="s-label">Pro Monat Ø</div><div class="s-value">'+fmtVal(avgMo,unit)+'</div><div class="s-sub" style="color:var(--muted)">Seit Jan</div></div>';
 
   /* Top-5 – kumuliert */
   var top=cumulScores.slice(0,5);
@@ -1474,18 +1482,24 @@ function printAushang(){
   html+='<p>Stand: '+MONTHS[lastMoWith-1]+' '+app.year+' &nbsp;|&nbsp; Ausgedruckt: '+new Date().toLocaleDateString('de-DE')+'</p></div>';
 
   employees.sort(function(a,b){
-    var ta=0,tb=0;
+    var ta=0,tb=0,acnt=0,bcnt=0;
     (a.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)ta+=(parseFloat(k.target)||0)/12});
     (b.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)tb+=(parseFloat(k.target)||0)/12});
     var sa=0,sb=0;
     for(var m=1;m<=lastMoWith;m++){
-      var va=a.values&&a.values[String(app.year)]&&a.values[String(app.year)][String(m)]||{};
-      var vb=b.values&&b.values[String(app.year)]&&b.values[String(app.year)][String(m)]||{};
-      (a.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sa+=(parseFloat(va[k.name])||0)});
-      (b.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sb+=(parseFloat(vb[k.name])||0)});
+      if(isActiveInMonth(a,app.year,m)){
+        var va=a.values&&a.values[String(app.year)]&&a.values[String(app.year)][String(m)]||{};
+        (a.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sa+=(parseFloat(va[k.name])||0)});
+        acnt++;
+      }
+      if(isActiveInMonth(b,app.year,m)){
+        var vb=b.values&&b.values[String(app.year)]&&b.values[String(app.year)][String(m)]||{};
+        (b.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sb+=(parseFloat(vb[k.name])||0)});
+        bcnt++;
+      }
     }
-    var pa=ta?Math.round(sa/(ta*lastMoWith)*100):0;
-    var pb=tb?Math.round(sb/(tb*lastMoWith)*100):0;
+    var pa=ta?(acnt?Math.round(sa/(ta*acnt)*100):0):0;
+    var pb=tb?(bcnt?Math.round(sb/(tb*bcnt)*100):0):0;
     return pb-pa;
   });
 
@@ -1496,6 +1510,8 @@ function printAushang(){
 
     var yearTarget=0;kpis.forEach(function(k){yearTarget+=(parseFloat(k.target)||0)});
     var mtlTarget=yearTarget/12;
+    /* Ermittle wie viele Monate dieser Mitarbeiter aktiv war */
+    var empActMo=0;for(var emm=1;emm<=lastMoWith;emm++){if(isActiveInMonth(emp,app.year,emm))empActMo++}
 
     /* Berechne Ist-Werte pro Monat */
     var rows=kpis.map(function(k){
@@ -1509,21 +1525,28 @@ function printAushang(){
         monthVals.push(val);
         kpiTotalReached+=val;
       }
-      var kpiReachedM=0;for(var m=1;m<=lastMoWith;m++)kpiReachedM+=monthVals[m-1];
-      var kpiTargetM=kpiMtlTarget*lastMoWith;
+      var kpiReachedM=0;var kpiActMo=0;
+      for(var m=1;m<=lastMoWith;m++){
+        if(isActiveInMonth(emp,app.year,m)){
+          kpiReachedM+=monthVals[m-1];
+          kpiActMo++;
+        }
+      }
+      var kpiTargetM=kpiMtlTarget*kpiActMo;
       var kpiPct=kpiTargetM?Math.round(kpiReachedM/kpiTargetM*100):0;
       var kpiDiff=kpiReachedM-kpiTargetM;
       var cls=kpiPct>=100?'ok':kpiPct>=50?'warn':'bad';
       var u=k.unit||kpiUnit;
-      return{name:k.name,unit:u,target:kpiYearTarget,mtlTarget:kpiMtlTarget,months:monthVals,total:kpiTotalReached,reachedM:kpiReachedM,targetM:kpiTargetM,diff:kpiDiff,pct:kpiPct,cls:cls};
+      return{name:k.name,unit:u,target:kpiYearTarget,mtlTarget:kpiMtlTarget,months:monthVals,total:kpiTotalReached,reachedM:kpiReachedM,targetM:kpiTargetM,diff:kpiDiff,pct:kpiPct,cls:cls,actMo:kpiActMo};
     });
 
     var totalReached=0;rows.forEach(function(r){totalReached+=r.reachedM});
-    var totalTargetM=mtlTarget*lastMoWith;
+    var totalTargetM=mtlTarget*empActMo;
     var totalPct=totalTargetM?Math.round(totalReached/totalTargetM*100):0;
     var totalDiff=totalReached-totalTargetM;
 
     var periodName=MONTHS[0]+'-'+MONTHS[lastMoWith-1];
+    if(empActMo>0&&empActMo!==lastMoWith){periodName=MONTHS[0]+'-'+MONTHS[lastMoWith-1]+' ('+empActMo+' aktive '+(empActMo===1?'Monat':'Monate')+')'}
 
     /* Prüfe ob alle KPIs die gleiche Einheit haben */
     var allSameUnit=true;

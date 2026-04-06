@@ -1423,11 +1423,24 @@ function createDemoDataHalf(){
 
 /* IMPORT / EXPORT */
 function exportData(){
-  var blob=new Blob([JSON.stringify(app.employees,null,2)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   var d=new Date();var ts=d.getFullYear()+'_'+String(d.getMonth()+1).padStart(2,'0')+'_'+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+'_'+String(d.getMinutes()).padStart(2,'0');
-  a.download='metrichub_data_'+ts+'.json';
-  a.style.display='none';document.body.appendChild(a);a.click();
+  var fn='metrichub_data_'+ts+'.json';
+  var json=JSON.stringify(app.employees,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  /* iOS: Web Share API nutzen – öffnet nativen Share-Sheet mit "In Dateien sichern" */
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isIOS&&navigator.share&&typeof navigator.canShare==='function'){
+    var file=new File([blob],fn,{type:'application/json'});
+    var shareData={files:[file],title:'MetricHub Daten',text:'Backup vom '+new Date().toLocaleDateString('de-DE')};
+    if(navigator.canShare(shareData)){
+      navigator.share(shareData).then(function(){toast('Export gespeichert')}).catch(function(){});
+      return;
+    }
+  }
+  /* Alle anderen Browser: <a>-Download */
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=fn;a.style.display='none';document.body.appendChild(a);a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href)},100);
   toast('Export gestartet');
 }

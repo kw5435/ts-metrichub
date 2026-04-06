@@ -1,695 +1,1876 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KPI Tracker</title>
-  <style>
-    :root { color-scheme: light; }
-    [data-theme="light"] {
-      --bg: #f5f5f5; --surface: #fff; --primary: #2563eb; --primary-hover: #1d4ed8;
-      --green: #16a34a; --red: #dc2626; --border: #e0e0e0; --text: #1a1a1a;
-      --muted: #6b7280; --header-bg: #1e293b; --header-text: #fff;
-      --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
-      --th-bg: #f8fafc; --rank-bar: #e5e7eb; --sort-active-bg: #eff6ff;
-      --badge-g-bg: #dcfce7; --badge-g-text: #16a34a;
-      --badge-r-bg: #fee2e2; --badge-r-text: #dc2626;
-      --kpi-bg: #eff6ff;
-      --shadow: 0 1px 3px rgba(0,0,0,.08);
-    }
-    [data-theme="dark"] {
-      --bg: #0f172a; --surface: #1e293b; --primary: #60a5fa; --primary-hover: #3b82f6;
-      --green: #22c55e; --red: #ef4444; --border: #334155; --text: #e2e8f0;
-      --muted: #94a3b8; --header-bg: #0f172a; --header-text: #e2e8f0;
-      --gold: #fbbf24; --silver: #64748b; --bronze: #d97706;
-      --th-bg: #1a2332; --rank-bar: #334155; --sort-active-bg: #1e3a5f;
-      --badge-g-bg: #14532d; --badge-g-text: #4ade80;
-      --badge-r-bg: #7f1d1d; --badge-r-text: #fca5a5;
-      --kpi-bg: #1e3a5f;
-      --shadow: 0 1px 3px rgba(0,0,0,.3);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MetricHub</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+--bg:#f0f2f5;--card:#fff;--primary:#2563eb;--primary-light:#3b82f6;
+--green:#16a34a;--red:#dc2626;--orange:#ea580c;--border:#e5e7eb;
+--text:#111827;--muted:#6b7280;--surface:#f9fafb;
+--header-bg:#fff;--shadow:0 1px 3px rgba(0,0,0,.08);
+--green-bg:#dcfce7;--green-text:#166534;
+--red-bg:#fee2e2;--red-text:#991b1b;
+--blue-bg:#dbeafe;--blue-text:#1e40af;--radius:12px;
+--sidebar-width:260px;--topbar-height:60px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; transition: background .2s, color .2s; }
+/* DESKTOP LAYOUT */
+.app-header{position:fixed;top:0;right:0;left:var(--sidebar-width);height:var(--topbar-height);background:var(--header-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;z-index:100;justify-content:space-between}
+.app-header h1{font-size:1.25rem;font-weight:700;flex:1;text-align:left}
 
-    header { background: var(--header-bg); color: var(--header-text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: background .2s; }
-    header h1 { font-size: 1.3rem; font-weight: 600; }
-    nav { display: flex; gap: 6px; flex-wrap: wrap; }
-    nav button { background: rgba(255,255,255,.12); color: var(--header-text); border: none; padding: 8px 16px; cursor: pointer; border-radius: 6px; font-size: .9rem; transition: background .15s; }
-    nav button:hover { background: rgba(255,255,255,.25); }
-    nav button.active { background: var(--primary); }
+/* Hamburger button (hidden on desktop) */
+.hamburger{display:none;width:40px;height:40px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);font-size:1.4rem;cursor:pointer;color:var(--text);align-items:center;justify-content:center;flex-shrink:0}
+.hamburger:active{background:var(--surface)}
+.sidebar .close-sidebar-btn{width:36px;height:36px;border:none;background:var(--surface);font-size:1.5rem;cursor:pointer;color:var(--text);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.sidebar .close-sidebar-btn:active{background:var(--border)}
+.app-header .btn-icon{width:38px;height:38px;border:none;background:none;font-size:1.3rem;cursor:pointer;color:var(--text);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.app-header .btn-icon:active{background:var(--surface)}
+.app-header .hdr-left{display:flex;align-items:center}
+.app-header .back-btn{padding:8px 16px;color:var(--primary);cursor:pointer;background:none;border:none;font-weight:600;font-size:.95rem;border-radius:8px}
+.app-header .back-btn:hover{background:rgba(37,99,235,.08)}
 
-    main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
-    .tab { display: none; }
-    .tab.active { display: block; }
+/* Persistent sidebar */
+.sidebar-overlay{display:none}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-width);background:var(--card);z-index:150;box-shadow:2px 0 12px rgba(0,0,0,.06);border-right:1px solid var(--border)}
+.sidebar-head{padding:24px 22px 18px;border-bottom:1px solid var(--border)}
+.sidebar-head h2{font-size:1.3rem;font-weight:800}
+.sidebar-head p{font-size:.8rem;color:var(--muted);margin-top:2px}
+.sidebar nav a{display:flex;align-items:center;gap:12px;padding:13px 22px;text-decoration:none;color:var(--text);font-size:.95rem;font-weight:500;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--surface);border-left-color:var(--primary)}
+.sidebar nav a .side-icon{width:24px;text-align:center;font-size:1.1rem}
+.sidebar .side-divider{height:1px;background:var(--border);margin:10px 22px}
 
-    h2 { font-size: 1.2rem; margin-bottom: 16px; }
+/* Page content area */
+.page{display:none;position:fixed;top:0;left:var(--sidebar-width);right:0;bottom:0;overflow-y:auto;padding-top:var(--topbar-height)}
+.page.active{display:block}
+.page-header{height:var(--topbar-height)}
 
-    .card { background: var(--surface); border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); transition: background .2s, box-shadow .2s; }
-    .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .form-group label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:24px;margin:16px 24px;box-shadow:var(--shadow)}
+.card-flat{background:var(--card);border-radius:var(--radius);margin:16px 24px;overflow:hidden;box-shadow:var(--shadow)}
 
-    input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: .9rem; background: var(--surface); color: var(--text); transition: border-color .15s; }
-    input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+/* Summary cards – 4 columns on desktop */
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:0 24px;margin-top:8px}
+.summary-card{background:var(--card);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow)}
+.summary-card .s-label{font-size:.75rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.summary-card .s-value{font-size:1.8rem;font-weight:700;margin-top:4px}
+.summary-card .s-sub{font-size:.85rem;margin-top:4px}
+.summary-card.green .s-value{color:var(--green)}
 
-    button.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: .9rem; font-weight: 500; transition: background .15s, transform .05s; }
-    button.btn:active { transform: scale(.97); }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-danger { background: var(--red); color: #fff; }
-    .btn-danger:hover { opacity: .85; }
-    .btn-sm { padding: 4px 10px; font-size: .8rem; }
+/* Dashboard two-column layout */
+.dashboard-grid{display:grid;grid-template-columns:400px 1fr;gap:24px;padding:0 24px;margin-top:16px}
 
-    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
-    th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .75rem; letter-spacing: .04em; color: var(--muted); }
-    td input { width: 70px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
+/* Top employees section */
+.top-section{padding:0;margin:0}
+.top-section h3{font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:12px;margin-top:8px}
+.top-emp{display:flex;align-items:center;gap:14px;padding:14px 20px;background:var(--card);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer}
+.top-emp:hover{background:var(--surface)}
+.top-avatar{width:44px;height:44px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;flex-shrink:0}
+.top-info{flex:1}
+.top-name{font-weight:600;font-size:1rem}
+.top-diff{font-size:.9rem;font-weight:600}
+.top-diff.pos{color:var(--green)}
+.top-diff.neg{color:var(--red)}
+.top-chevron{color:var(--muted);font-size:1.2rem}
 
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; }
-    .badge-g { background: var(--badge-g-bg); color: var(--badge-g-text); }
-    .badge-r { background: var(--badge-r-bg); color: var(--badge-r-text); }
+/* Employee table */
+.emp-table{width:100%}
+.emp-table .emp-list-item{display:flex;align-items:center;gap:14px;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--border);cursor:pointer}
+.emp-table .emp-list-item:first-child{border-radius:var(--radius) var(--radius) 0 0}
+.emp-table .emp-list-item:last-child{border-radius:0 0 var(--radius) var(--radius);border:none}
+.emp-table .emp-list-item:hover{background:var(--surface)}
+.emp-list-item .emp-name{font-weight:600;font-size:1rem}
+.emp-list-item .emp-status{font-size:.8rem;padding:3px 10px;border-radius:8px;font-weight:600}
+.emp-list-item .emp-status.aktiv{background:var(--green-bg);color:var(--green-text)}
+.emp-list-item .emp-status.inaktiv{background:var(--red-bg);color:var(--red-text)}
 
-    .rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow); transition: background .2s; }
-    .rank-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; background: var(--border); color: var(--muted); flex-shrink: 0; }
-    .rank-1 .rank-num { background: var(--gold); color: #fff; }
-    .rank-2 .rank-num { background: var(--silver); color: #fff; }
-    .rank-3 .rank-num { background: var(--bronze); color: #fff; }
-    .rank-info { flex: 1; }
-    .rank-name { font-weight: 600; }
-    .rank-detail { font-size: .8rem; color: var(--muted); }
-    .rank-bar { height: 8px; border-radius: 4px; background: var(--rank-bar); margin-top: 4px; overflow: hidden; min-width: 120px; }
-    .rank-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+/* Employee management month indicator */
+.emp-top-bar{display:flex;align-items:center;justify-content:space-between;margin:12px 24px 0;flex-wrap:wrap;gap:10px}
+.emp-month-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);font-size:.9rem;font-weight:500;color:var(--text);user-select:none}
+.emp-month-badge span{font-weight:700;color:var(--primary)}
+.btn-add-emp{padding:8px 18px;border:1.5px solid var(--primary);border-radius:var(--radius);background:var(--primary);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-add-emp:hover{background:var(--primary-light)}
 
-    .sort-toggle { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .sort-toggle button { padding: 6px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; cursor: pointer; font-size: .85rem; transition: background .15s; }
-    .sort-toggle button.active { border-color: var(--primary); background: var(--sort-active-bg); color: var(--primary); }
+/* Employee management new layout */
+.emp-section{margin:16px 24px;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.emp-section-header{display:flex;align-items:center;padding:16px 20px;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);gap:10px}
+.emp-section-header:hover{background:var(--surface)}
+.emp-section-header h3{flex:1;font-size:1rem;font-weight:700}
+.emp-section-header .count{font-size:.85rem;color:var(--muted);background:var(--surface);padding:2px 10px;border-radius:12px;font-weight:600}
+.emp-section-header .arrow{font-size:.85rem;color:var(--muted);transition:transform .2s}
+.emp-section-header .arrow.collapsed{transform:rotate(-90deg)}
+.emp-section-body{padding:8px 0;display:block}
+.emp-section-body.collapsed{display:none}
 
-    .kpi-tag { display: inline-block; padding: 4px 10px; background: var(--kpi-bg); border-radius: 12px; font-size: .8rem; margin: 2px; }
-    .kpi-tag .del { cursor: pointer; margin-left: 6px; color: var(--red); font-weight: 700; }
+.emp-card{border-bottom:1px solid var(--border);padding:16px 20px}
+.emp-card:last-child{border:none}
+.emp-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.emp-card-top .top-avatar{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0}
+.emp-card-top .emp-info{flex:1}
+.emp-card-top .emp-name{font-weight:600;font-size:1rem}
+.emp-card-top .emp-date-range{font-size:.8rem;color:var(--muted)}
 
-    .empty { text-align: center; color: var(--muted); padding: 32px; }
-    .period-select { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.emp-edit-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+.emp-edit-row label{font-size:.8rem;font-weight:600;color:var(--muted);min-width:40px}
+.emp-edit-row input[type=month],.emp-edit-row input[type=text],.emp-edit-row input[type=number]{
+  padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--card);color:var(--text)}
+.emp-edit-row input[type=text]{flex:1}
+.emp-edit-row input[type=number]{width:90px;text-align:right}
 
-    /* DASHBOARD TABLE */
-    .dash-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-    .dash-table th, .dash-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: right; }
-    .dash-table th { background: var(--th-bg); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; color: var(--muted); text-align: right; white-space: nowrap; }
-    .dash-table th:first-child, .dash-table td:first-child { text-align: left; }
-    .dash-table .name-col { min-width: 140px; text-align: left !important; font-weight: 500; }
-    .dash-table .month-col { min-width: 60px; }
-    .dash-table .total-col { min-width: 70px; font-weight: 700; }
-    .dash-table .target-col { min-width: 70px; }
-    .dash-table .pct-col { min-width: 55px; }
-    .dash-table tr:hover td { background: var(--kpi-bg); }
-    .dash-table tr.sub-header td { background: var(--th-bg); font-weight: 700; font-size: .78rem; }
-    .cell-good { background: #dcfce7 !important; color: #16a34a; font-weight: 600; }
-    .cell-bad { background: #fee2e2 !important; color: #dc2626; }
-    .cell-ok { background: #fef3c7 !important; color: #b45309; }
-    [data-theme="dark"] .cell-good { background: #14532d !important; color: #4ade80; }
-    [data-theme="dark"] .cell-bad { background: #7f1d1d !important; color: #fca5a5; }
-    [data-theme="dark"] .cell-ok { background: #78350f !important; color: #fbbf24; }
-    .dash-summary { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 12px; }
-    .dash-summary-item { text-align: center; }
-    .dash-summary-val { font-size: 1.4rem; font-weight: 700; }
-    .dash-summary-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; }
-  </style>
+.emp-kpi-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:.85rem}
+.emp-kpi-table th{text-align:left;padding:6px 8px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.03em;border-bottom:1px solid var(--border);background:var(--surface)}
+.emp-kpi-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.emp-kpi-table tr:last-child td{border-bottom:none}
+.emp-kpi-table .kpi-target-input{width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:var(--card);color:var(--text);text-align:right}
+.emp-kpi-table .kpi-name-input{width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:var(--card);color:var(--text)}
+.emp-kpi-table .kpi-unit-select{width:60px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--card);color:var(--text)}
+/* Dashboard KPI filter */
+.dash-filter{display:flex;align-items:center;gap:10px;padding:8px 24px;margin-top:8px}
+.dash-filter label{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.dash-filter select{padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--card);color:var(--text)}
+.kpi-delete-btn{border:none;background:none;color:var(--red);cursor:pointer;font-size:.95rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.kpi-delete-btn:hover{background:var(--red-bg)}
+
+.add-kpi-row{display:grid;grid-template-columns:1fr 80px 54px 40px;gap:8px;margin-top:8px;padding:8px 0}
+.add-kpi-row input{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:var(--card);color:var(--text)}
+.add-kpi-row input[type=number]{text-align:right}
+.add-kpi-row .kpi-add-spacer{display:flex;align-items:center;justify-content:center}
+.btn-sm{padding:7px 14px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-sm.primary{background:var(--primary);color:#fff}
+.btn-sm.primary:hover{background:var(--primary-light)}
+.btn-sm.outline{background:none;border:1px solid var(--border);color:var(--text)}
+.btn-sm.outline:hover{background:var(--surface)}
+.btn-sm.success{background:var(--green);color:#fff}
+.btn-sm.danger{background:var(--red);color:#fff}
+.btn-sm.danger:hover{background:#b91c1c}
+
+.emp-card-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+.inactive-emp{opacity:.7}
+
+/* Form elements */
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
+.form-group input,.form-group select{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--card);color:var(--text)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.btn-primary{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:1rem;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-primary:hover{background:var(--primary-light)}
+
+/* Target/entry rows */
+.ziel-row{display:flex;align-items:center;gap:14px;padding:14px 20px;background:var(--card);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow)}
+.ziel-name{font-weight:600;font-size:1rem;flex:1}
+.ziel-name small{font-weight:400;color:var(--muted)}
+.ziel-val{font-size:.95rem;color:var(--muted)}
+.ziel-val strong{color:var(--text);font-weight:700}
+
+/* KPI table */
+.kpi-table{width:100%;border-collapse:collapse;font-size:.95rem}
+.kpi-table th{text-align:left;padding:10px 8px;font-size:.75rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.03em;border-bottom:2px solid var(--border)}
+.kpi-table td{padding:12px 8px;border-bottom:1px solid var(--border)}
+.kpi-table tr:last-child td{border:none}
+.kpi-table .kpi-name{font-weight:600}
+.kpi-table .kpi-target{color:var(--muted);font-size:.85rem}
+
+/* Settings */
+.settings-group{margin:16px 24px;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.settings-item{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.settings-item:last-child{border:none}
+.settings-item label{flex:1;font-size:1rem;font-weight:500}
+.settings-item select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.95rem}
+
+/* Month selector */
+.month-selector{display:flex;gap:6px;padding:0 24px;overflow-x:auto}
+.month-selector::-webkit-scrollbar{display:none}
+.month-btn{min-width:60px;padding:12px;text-align:center;border-radius:var(--radius);font-size:.85rem;font-weight:600;background:var(--card);color:var(--muted);border:1.5px solid var(--border);cursor:pointer}
+.month-btn:hover{border-color:var(--primary)}
+.month-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Section title */
+.section-title{padding:16px 24px 8px;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+
+/* Progress bar */
+.kpi-progress{height:8px;border-radius:4px;background:var(--border);margin-top:8px;overflow:hidden}
+.kpi-progress-fill{height:100%;border-radius:4px;background:var(--green);transition:width .3s}
+
+/* CSV button */
+.csv-btn{margin:16px 24px;padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);font-size:.95rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:10px;color:var(--text);transition:background .15s;border:none;width:auto}
+.csv-btn:hover{background:var(--surface)}
+
+/* Toast */
+.toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:14px 28px;border-radius:24px;font-size:.95rem;font-weight:500;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--card);border-radius:var(--radius);padding:28px;width:100%;max-width:440px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal h3{font-size:1.15rem;font-weight:700;margin-bottom:18px}
+.modal .modal-actions{display:flex;gap:10px;margin-top:22px}
+.modal .modal-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius);font-size:.95rem;font-weight:600;cursor:pointer}
+.modal .modal-actions .btn-cancel{background:var(--surface);color:var(--text)}
+.modal .modal-actions .btn-confirm{background:var(--primary);color:#fff}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .empty-icon{font-size:3.5rem;margin-bottom:14px}
+.empty-state p{font-size:.95rem}
+
+/* Print button */
+.print-btn{margin:8px 24px 16px;padding:10px 20px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);font-size:.88rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;color:var(--text)}
+.print-btn:hover{background:var(--surface)}
+
+/* Print styles */
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{position:absolute;left:0;top:0;width:210mm;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:10pt;color:#111}
+  .print-header{text-align:center;margin-bottom:12pt;border-bottom:2pt solid #333;padding-bottom:8pt}
+  .print-header h1{font-size:16pt;margin:0 0 2pt 0}
+  .print-header p{font-size:9pt;color:#666;margin:0}
+  .print-emp-summary{display:flex;justify-content:space-between;align-items:center;margin:10pt 0 6pt;padding:8pt 10pt;background:#f5f5f5;border-radius:4pt}
+  .print-emp-summary .emp-name{font-size:14pt;font-weight:700}
+  .print-emp-summary .emp-pct{font-size:20pt;font-weight:800}
+  .print-table{width:100%;border-collapse:collapse;margin:6pt 0;font-size:9pt}
+  .print-table th{text-align:left;padding:4pt 6pt;font-weight:700;font-size:8pt;text-transform:uppercase;letter-spacing:.3pt;border-bottom:1pt solid #999;background:#f5f5f5}
+  .print-table td{padding:3pt 6pt;border-bottom:1pt solid #ddd}
+  .print-table .kpi-name{font-weight:600}
+  .print-table .ok{color:#16a34a;font-weight:700}
+  .print-table .warn{color:#ea580c;font-weight:700}
+  .print-table .bad{color:#dc2626;font-weight:700}
+  .print-footer{margin-top:10pt;font-size:8pt;color:#999;text-align:center;border-top:1pt solid #ddd;padding-top:4pt}
+  @page{size:A4;margin:15mm 18mm 15mm 18mm;@bottom-left{content:none}@bottom-right{content:none}@bottom-center{content:none}@top-left{content:none}@top-right{content:none}@top-center{content:none}}
+}
+
+/* ===================== MOBILE RESPONSIVE ===================== */
+@media(max-width:767px){
+  :root{
+    --sidebar-width:0px;--topbar-height:56px;--radius:10px;
+  }
+
+  /* Sidebar als Overlay */
+  .sidebar{transform:translateX(-100%);transition:transform .3s ease;width:280px;z-index:200}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:190;opacity:0;pointer-events:none;transition:opacity .3s}
+  .sidebar-overlay.active{opacity:1;pointer-events:auto}
+
+  /* Header anpassen */
+  .app-header{left:0!important;padding:0 14px}
+  .app-header h1{font-size:1.05rem}
+  .app-header .back-btn{padding:6px 12px;font-size:.85rem}
+  .hamburger{display:flex!important}
+  .sidebar .close-sidebar-btn{display:flex!important}
+  .sidebar-head h2{font-size:1.15rem}
+
+  /* Page content */
+  .page{left:0!important;padding-top:56px!important}
+
+  /* Cards */
+  .card{padding:16px;margin:10px 12px}
+  .card-flat{margin:10px 12px}
+
+  /* Summary Cards – 2 Spalten mobil */
+  .summary-row{grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px;margin-top:6px}
+  .summary-card{padding:14px 14px}
+  .summary-card .s-label{font-size:.6rem}
+  .summary-card .s-value{font-size:1.2rem}
+  .summary-card .s-sub{font-size:.7rem}
+
+  /* Dashboard Grid – 1 Spalte */
+  .dashboard-grid{grid-template-columns:1fr;gap:14px;padding:0 12px;margin-top:12px}
+
+  /* Top employees mobil */
+  .top-emp{padding:10px 14px;gap:10px}
+  .top-avatar{width:36px;height:36px;font-size:.8rem}
+  .top-name{font-size:.9rem}
+  .top-diff{font-size:.8rem}
+
+  /* Employee table mobil */
+  .emp-table .emp-list-item{padding:10px 14px;gap:10px}
+  .emp-list-item .emp-name{font-size:.9rem}
+
+  /* Employee management */
+  .emp-top-bar{margin:8px 12px 0;flex-direction:column;align-items:stretch}
+  .emp-section{margin:10px 12px}
+  .emp-section-header{padding:12px 14px}
+  .emp-card{padding:12px 14px}
+  .emp-card-top .top-avatar{width:36px;height:36px;font-size:.8rem}
+
+  /* Edit rows stapeln */
+  .emp-edit-row{flex-wrap:wrap;gap:6px;padding:4px 0}
+  .emp-edit-row label{min-width:0;width:100%;font-size:.7rem}
+  .emp-edit-row input[type=month],
+  .emp-edit-row input[type=text],
+  .emp-edit-row input[type=number]{width:100%!important;font-size:.9rem;padding:10px}
+
+  /* KPI table mobil – horizontal scrollbar */
+  .emp-kpi-table{font-size:.8rem;min-width:300px}
+  .emp-kpi-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .emp-kpi-table .kpi-name-input{font-size:.9rem;padding:8px}
+  .emp-kpi-table .kpi-target-input{width:70px;font-size:.9rem;padding:8px}
+
+  /* Add KPI row stapeln */
+  .add-kpi-row{grid-template-columns:1fr 1fr;gap:6px}
+  .add-kpi-row .kpi-add-spacer{grid-column:1/-1}
+
+  /* Action buttons untereinander */
+  .emp-card-actions{flex-direction:column;gap:6px}
+  .emp-card-actions .btn-sm{width:100%;padding:10px;font-size:.85rem}
+
+  /* Filter & selects */
+  .dash-filter{padding:6px 12px;gap:8px;flex-wrap:wrap}
+  .dash-filter label{font-size:.7rem;min-width:40px}
+  .dash-filter select{flex:1;padding:8px;font-size:.85rem}
+
+  /* Month selector */
+  .month-selector{padding:0 12px}
+  .month-btn{min-width:52px;padding:10px 6px;font-size:.78rem}
+
+  /* Section title */
+  .section-title{padding:12px 14px 6px;font-size:.72rem}
+
+  /* Form elements mobil */
+  .form-group{margin-bottom:14px}
+  .form-group label{font-size:.72rem;margin-bottom:6px;padding:0 2px}
+  .form-group input,.form-group select{padding:12px 14px;font-size:1rem}
+  .btn-primary{padding:14px;font-size:.95rem}
+
+  /* Modal mobil – voller Bildschirm */
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal{max-width:100%!important;max-height:90vh;border-radius:var(--radius) var(--radius) 0 0;overflow-y:auto;margin:0;padding:24px 18px}
+  .modal h3{font-size:1.05rem}
+  .modal .modal-actions{flex-direction:column;gap:6px}
+  .modal .modal-actions button{width:100%;padding:12px;font-size:.9rem}
+
+  /* CSV/Print buttons mobil */
+  .csv-btn,.print-btn{margin:10px 12px;padding:12px 16px;font-size:.85rem;white-space:nowrap}
+  .csv-btn,.print-btn{display:flex;width:auto;justify-content:center}
+
+  /* Toast mobil */
+  .toast{bottom:80px;font-size:.85rem;padding:12px 22px;left:12px;right:12px;transform:none;text-align:center}
+  .toast.show{transform:none}
+
+  /* Ziel row mobil */
+  .ziel-row{padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .ziel-name{font-size:.9rem}
+  .ziel-val{font-size:.85rem}
+
+  /* KPI table (entry) mobil */
+  .kpi-table{font-size:.85rem}
+  .kpi-table th{padding:8px 4px;font-size:.7rem}
+  .kpi-table td{padding:10px 4px}
+
+  /* Settings mobil */
+  .settings-group{margin:10px 12px}
+  .settings-item{padding:14px 16px;flex-wrap:wrap;gap:8px}
+  .settings-item label{font-size:.9rem}
+  .settings-item select{width:100%;flex:none}
+
+  /* Employee detail mobil */
+  #empDetailKPIs .card{margin:8px 12px;padding:14px}
+
+  /* Chart container mobil */
+  .card canvas{max-height:280px!important}
+
+  /* Einträge Tabelle mobil */
+  #lastEntries .ziel-row{flex-direction:column;align-items:flex-start;gap:6px}
+}
+
+/* Sehr kleine Bildschirme – Single Column Summary */
+@media(max-width:400px){
+  .summary-row{grid-template-columns:1fr}
+  .summary-card .s-value{font-size:1.5rem}
+  .add-kpi-row{grid-template-columns:1fr}
+  .hamburger{font-size:1.2rem}
+}
+</style>
 </head>
 <body>
 
-<header>
-  <h1>KPI Tracker</h1>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><h2>MetricHub</h2><p>KPI-Tracking f&uuml;r Ihr Team</p></div>
+      <button class="btn-icon close-sidebar-btn" onclick="closeSidebar()" style="display:none" aria-label="Menü schließen">&times;</button>
+    </div>
+  </div>
   <nav>
-    <button data-tab="dashboard" class="active">Dashboard</button>
-    <button data-tab="employees">Mitarbeiter</button>
-    <button data-tab="entry">Dateneingabe</button>
-    <button data-tab="ranking">Auswertung</button>
-    <button id="exportBtn" style="background:rgba(34,197,94,.25);">Export</button>
-    <button id="importBtn" style="background:rgba(139,92,246,.25);">Import</button>
-    <button id="themeBtn" style="font-size:1.1rem;padding:8px 14px;" title="Theme wechseln">&#9728;&#65039;</button>
+    <a href="#" onclick="goTo('dashboard')"><span class="side-icon">&#128202;</span>Dashboard</a>
+    <a href="#" onclick="goTo('empdash')"><span class="side-icon">&#128200;</span>Mitarbeiter-Dashboard</a>
+    <a href="#" onclick="goTo('entry')"><span class="side-icon">&#65291;</span>KPI erfassen</a>
+    <a href="#" onclick="goTo('employees')"><span class="side-icon">&#128101;</span>Mitarbeiter verwalten</a>
+    <div class="side-divider"></div>
+    <a href="#" onclick="goTo('settings')"><span class="side-icon">&#9881;</span>Einstellungen</a>
+    <a href="#" onclick="importData()"><span class="side-icon">&#8681;</span>Daten importieren</a>
+    <a href="#" onclick="exportData()"><span class="side-icon">&#8593;</span>Daten exportieren</a>
+    <a href="#" onclick="goTo('faq');return false"><span class="side-icon">&#10067;</span>FAQ</a>
   </nav>
-</header>
+</div>
 
-<main>
-  <div id="tab-dashboard" class="tab active">
-    <h2>Dashboard</h2>
-    <div class="card">
-      <div class="period-select">
-        <div class="form-group"><label>Jahr</label><select id="dashYear"></select></div>
-        <div class="form-group"><label>KPI</label><select id="dashKpi"></select></div>
-      </div>
-    </div>
-    <div class="card" style="padding:0; overflow-x:auto;">
-      <table class="dash-table" id="dashTable"></table>
-    </div>
-    <div class="dash-summary" id="dashSummary"></div>
-  </div>
+<div class="toast" id="toast"></div>
 
-  <div id="tab-employees" class="tab">
-    <h2>Mitarbeiter & KPI-Ziele verwalten</h2>
-    <div class="card">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" id="empName" placeholder="Max Mustermann">
-        </div>
-        <div class="form-group">
-          <label>Status</label>
-          <select id="empStatus"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
-        </div>
-        <button class="btn btn-primary" id="addEmpBtn">Mitarbeiter anlegen</button>
-      </div>
-    </div>
-    <div id="empList"></div>
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <h1>Dashboard</h1>
+    <div class="hdr-left"><button class="btn-icon" onclick="goTo('settings')">&#9881;</button></div>
   </div>
+  <div class="page-header"></div>
+  <div class="month-selector" id="dashMonths"></div>
+  <div class="dash-filter" id="dashKpiFilter"></div>
+  <div class="summary-row" id="dashSummary"></div>
+  <div class="dashboard-grid">
+    <div class="top-section" id="dashTopEmp"></div>
+    <div>
+      <div class="section-title" style="padding:0 0 8px">Alle Mitarbeiter</div>
+      <div id="dashEmpTable"></div>
+    </div>
+  </div>
+  <div class="card"><canvas id="kpiChart"></canvas></div>
+  <button class="csv-btn" onclick="exportCSV()">&#8615; CSV Export</button>
+  <button class="print-btn" onclick="printAushang()">&#128424; Aushang drucken</button>
+</div>
 
-  <div id="tab-entry" class="tab">
-    <h2>Monatliche KPI-Werte erfassen</h2>
-    <div class="card">
-      <div class="period-select">
-        <div class="form-group"><label>Mitarbeiter</label><select id="entryEmp"></select></div>
-        <div class="form-group"><label>Jahr</label><select id="entryYear"></select></div>
-        <div class="form-group"><label>Monat</label><select id="entryMonth"></select></div>
-      </div>
-    </div>
-    <div class="card"><div id="entryTable"></div></div>
-    <button class="btn btn-primary" id="saveEntryBtn">Werte speichern</button>
-  </div>
+<!-- Print Area (hidden, only for print) -->
+<div id="printArea" style="display:none"></div>
 
-  <div id="tab-ranking" class="tab">
-    <h2>Mitarbeiter-Ranking</h2>
-    <div class="card">
-      <div class="period-select">
-        <div class="form-group"><label>Jahr</label><select id="rankYear"></select></div>
-        <div class="form-group"><label>Monat (optional)</label><select id="rankMonth"><option value="">Gesamtjahr</option></select></div>
-        <button class="btn btn-primary" id="rankGoBtn">Auswerten</button>
+<!-- ENTRY -->
+<div class="page" id="page-entry">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <h1>KPI erfassen</h1>
+    <div class="hdr-left"></div>
+  </div>
+  <div class="page-header"></div>
+  <div class="card">
+    <div class="form-group"><label>Mitarbeiter</label><select id="entryEmp" onchange="onEntryEmpChange()"><option value="">-- w&auml;hlen --</option></select></div>
+    <div class="form-group"><label>KPI</label><select id="entryKpi" onchange="onEntryKpiChange()"><option value="">-- erst Mitarbeiter w&auml;hlen --</option></select></div>
+    <div class="form-group"><label>Wert</label><input type="number" id="entryValue" placeholder="1.200" min="0" step="any"></div>
+    <div class="form-group"><label>Datum</label><input type="date" id="entryDate"></div>
+    <button class="btn-primary" onclick="saveEntry()">Erfassen</button>
+  </div>
+  <div id="entryPastValues" style="margin-top:20px"></div>
+  <div class="section-title">Letzte Eintr&auml;ge</div>
+  <div id="lastEntries"></div>
+</div>
+
+<!-- EMPLOYEES -->
+<div class="page" id="page-employees">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <h1>Mitarbeiter verwalten</h1>
+    <div class="hdr-left"><button class="btn-icon" onclick="openAddEmpModal()" title="Mitarbeiter anlegen" style="width:38px;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:1.2rem;cursor:pointer;color:var(--text)">&#65291;</button></div>
+  </div>
+  <div class="page-header"></div>
+  <div class="emp-top-bar"><div id="empMonthBadge"></div><button class="btn-add-emp" onclick="openNewEmpWizard()">&#65291; Mitarbeiter hinzuf&uuml;gen</button></div>
+  <div id="empSectionActive"></div>
+  <div id="empSectionInactive"></div>
+</div>
+
+<!-- EMPLOYEE DETAIL -->
+<div class="page" id="page-empdetail">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <div class="hdr-left"><button class="back-btn" onclick="goTo('employees')">&#8592; Zur&uuml;ck</button></div>
+    <h1 id="empDetailName">-</h1>
+    <div class="hdr-left"></div>
+  </div>
+  <div class="page-header"></div>
+  <div id="empDetailKPIs"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <div class="hdr-left"><button class="btn-icon" onclick="goTo('dashboard')">&#8592;</button></div>
+    <h1>Einstellungen</h1>
+    <div class="hdr-left"></div>
+  </div>
+  <div class="page-header"></div>
+  <div class="settings-group">
+    <div class="settings-item"><label>Jahr</label><select id="settingsYear"></select></div>
+    <div class="settings-item"><label>Monatliche KPIs</label><select id="settingsKpis"><option value="multi">Mehrere KPIs</option><option value="single">Nur Umsatz</option></select></div>
+    <div class="settings-item"><label>Thema</label><select id="settingsTheme"><option value="light">Hell</option><option value="dark">Dunkel</option></select></div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-item" onclick="confirmDeleteAllData()" style="cursor:pointer"><label style="color:var(--red)">Alle Daten zur&uuml;cksetzen</label></div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-item" onclick="createDemoData()" style="cursor:pointer"><label style="color:var(--green)">&#8594; Demo-Daten Variante 1 &ndash; Ganzes Jahr</label></div>
+    <div class="settings-item" onclick="createDemoDataHalf()" style="cursor:pointer"><label style="color:var(--green)">&#8594; Demo-Daten Variante 2 &ndash; Halbes Jahr</label></div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="page" id="page-faq">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <h1>FAQ</h1>
+    <div class="hdr-left"></div>
+  </div>
+  <div class="page-header"></div>
+  <div class="settings-group" id="faqGeneral">
+    <div class="settings-item" style="display:block;cursor:default;background:#fffbeb;border:1px solid #fbbf24;margin:8px">
+      <label style="color:var(--orange);font-weight:700;display:block;margin-bottom:6px;font-size:.95rem">&#9888; Wichtiger Hinweis zur Datenspeicherung</label>
+      <span style="font-size:.88rem;color:var(--text);font-weight:400;display:block;line-height:1.6">
+        Im Gegensatz zu cloudbasierten L&ouml;sungen werden die Daten <strong>nicht in einer Datenbank oder auf einem Server</strong> gespeichert, sondern ausschlie&szlig;lich <strong>lokal in Ihrem Browser</strong> (Web Storage/localStorage).
+        <br><br>
+        Das bedeutet: <strong>Nach jeder &Auml;nderung oder regelm&auml;&szlig;ig sollten Sie Ihre Daten &uuml;ber &quot;Daten exportieren&quot; im Seitenmen&uuml; als JSON-Datei sichern.</strong> Nur so sind die Daten langfristig verf&uuml;gbar und gehen nicht verloren, z.&nbsp;B. wenn Sie den Browser-Cache leeren oder das Ger&auml;t wechseln.
+        <br><br>
+        Diese App ist prim&auml;r eine <strong>Webseite zur Datenerfassung und Auswertung</strong> &ndash; Ihre gesicherten JSON-Dateien sind die eigentliche Datenquelle. &Uuml;ber &quot;Daten importieren&quot; k&ouml;nnen Sie jederzeit einen vorherigen Sicherungsstand wiederherstellen.
+      </span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Was sind KPIs?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">KPIs (Key Performance Indicators) sind messbare Werte, die den Erfolg eines Mitarbeiters oder Teams darstellen.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie trage ich Ums&auml;tze ein?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Gehen Sie auf "KPI erfassen", w&auml;hlen Sie einen Mitarbeiter und KPI, geben Sie den Wert ein und klicken Sie auf "Erfassen".</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie setze ich individuelle Ziele?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Gehen Sie auf "Mitarbeiter verwalten" und bearbeiten Sie beim jeweiligen Mitarbeiter die KPIs und Jahresziele direkt in der Tabellenansicht.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Welche Einheiten kann ich verwenden?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Pro KPI w&auml;hlen Sie zwischen <strong>Stk.</strong> (St&uuml;ck), <strong>&euro;</strong> (Euro) oder <strong>%</strong> (Prozent). Die Einheit wird bei &Auml;nderung automatisch f&uuml;r alle Mitarbeiter mit gleichem KPI-Namen synchronisiert.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie f&uuml;ge ich einen neuen Mitarbeiter hinzu?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Gehen Sie auf "Mitarbeiter verwalten" und klicken Sie auf "+ Mitarbeiter hinzuf&uuml;gen". Im Wizard k&ouml;nnen Sie Name, Zeitraum und bestehende KPIs &uuml;bernehmen.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie deaktiviere oder l&ouml;sche ich einen Mitarbeiter?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Unter "Mitarbeiter verwalten" finden Sie die Schaltfl&auml;chen "Deaktivieren" und "L&ouml;schen" in jeder Mitarbeiter-Karte. Deaktivierte Mitarbeiter k&ouml;nnen Sie auch wieder reaktivieren.</span>
+    </div>
+  </div>
+  <div class="settings-group" id="faqDashboard">
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Was zeigt das Dashboard?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Das Dashboard zeigt Gesamtziel, Erf&uuml;llungsgrad, Top-5-Rangliste, eine &Uuml;bersicht aller Mitarbeiter als Tabelle und einen Linienchart mit dem KPI-Verlauf der letzten 8 Monate.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Was ist das Mitarbeiter-Dashboard?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Hier k&ouml;nnen Sie einen einzelnen Mitarbeiter ausw&auml;hlen und dessen KPI-Zielerreichung im Detail sehen – inkl. Verlauf, Differenzen und einem eigenen Chart. Die Ansicht "Alle" zeigt eine Rangliste aller aktiven Mitarbeiter.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie filtere ich nach einem bestimmten KPI?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Im Dashboard und im Mitarbeiter-Dashboard gibt es ein "KPI"-Dropdown. Damit w&auml;hlen Sie, welcher KPI in den Kennzahlen und Ranglisten angezeigt wird.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie kann ich einen Aushang drucken?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Klicken Sie im Dashboard auf "Aushang drucken". Es wird eine druckoptimierte Ansicht im A4-Format generiert – pro Mitarbeiter eine &Uuml;bersicht mit allen Monatswerten, Zielen und Abweichungen.</span>
+    </div>
+  </div>
+  <div class="settings-group" id="faqData">
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie exportiere ich Daten?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Nutzen Sie "CSV Export" im Dashboard f&uuml;r eine CSV-Datei oder "Daten exportieren" im Seitenmen&uuml; f&uuml;r einen kompletten JSON-Backup.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie importiere ich Daten?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Klicken Sie im Seitenmen&uuml; auf "Daten importieren" und w&auml;hlen Sie eine zuvor exportierte JSON-Datei aus. Bestehende Daten werden dabei ersetzt.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wo werden die Daten gespeichert?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Alle Daten werden lokal im Browser (localStorage) gespeichert. Es wird kein Server ben&ouml;tigt. Sichern Sie Ihre Daten regelm&auml;&szlig;ig &uuml;ber "Daten exportieren".</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Was sind Demo-Daten?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">In den Einstellungen k&ouml;nnen Sie Demo-Daten laden – Variante 1 (ganzes Jahr) oder Variante 2 (Januar&ndash;Juni). Damit k&ouml;nnen Sie die App sofort testen.</span>
+    </div>
+  </div>
+  <div class="settings-group" id="faqSettings">
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Wie wechsle ich das Jahr?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Gehen Sie zu "Einstellungen" und w&auml;hlen Sie das gew&uuml;nschte Jahr aus. Die Monatsauswahl in den Dashboards passt sich automatisch an.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Was ist der "Nur Umsatz"-Modus?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Standard k&ouml;nnen Sie mehrere KPIs pro Mitarbeiter erfassen. Im Modus "Nur Umsatz" wird nur der KPI "Umsatz" verwendet &ndash; einfacher und &uuml;bersichtlicher.</span>
+    </div>
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:600;display:block;margin-bottom:4px">Gibt es einen Dark-Mode?</label>
+      <span style="font-size:.9rem;color:var(--muted);font-weight:400">Ja. Unter "Einstellungen" k&ouml;nnen Sie zwischen "Hell" und "Dunkel" wechseln. Die Einstellung wird gespeichert und auf alle Seiten &uuml;bernommen.</span>
+    </div>
+  </div>
+  <div class="settings-group" id="faqChangelog">
+    <div class="settings-item" style="display:block;cursor:default">
+      <label style="color:var(--text);font-weight:700;display:block;margin-bottom:8px;font-size:1rem">Changelog</label>
+
+      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <label style="color:var(--primary);font-weight:600;display:block;margin-bottom:4px;font-size:.92rem">v1.1 &ndash; 2026-04-06 (Pflege-Update)</label>
+        <span style="font-size:.85rem;color:var(--muted);font-weight:400;display:block;line-height:1.6">
+          <strong>Dashboard:</strong> Summary-Karten, Top-5-Rangliste und Mitarbeiter-Tabelle zeigen jetzt kumulierte Werte (Jan–gew&auml;hlter Monat) statt nur den Einzelmonat<br>
+          <strong>Aushang-Druck:</strong> Sichtbare Zwischenstand-Zeile pro Mitarbeiter im Druck (Zeitraum, kumuliertes Ist, Ziel, Differenz, %) &ndash; farbig hervorgehoben mit Ampel (gr&uuml;n/gelb/rot)<br>
+          <strong>Aushang-Druck:</strong> Kumulation bezieht sich nun explizit auf den im Dashboard gew&auml;hlten Monat<br>
+          <strong>FAQ:</strong> Neuer Warn-Hinweis als erster Punkt &uuml;ber ausschlie&szlig;liche Browser-Speicherung<br>
+          <strong>FAQ:</strong> Vollst&auml;ndig &uuml;berarbeitet auf 19 Eintr&auml;ge in 5 Kategorien<br>
+          <strong>FAQ:</strong> Erweitertes Changelog mit allen Features<br>
+          <strong>Druck:</strong> Browser-URL in Seitenr&auml;ndern unterdr&uuml;ckt<br>
+          <strong>Mobile:</strong> Vollst&auml;ndig responsive f&uuml;r Tablets und Smartphones (Hamburger-Men&uuml;, gestapelte Elemente, Touch-Optimierung)
+        </span>
       </div>
-      <div class="sort-toggle">
-        <span style="font-size:.85rem;color:var(--muted)">Sortierung:</span>
-        <button class="sort-best active">Bester zuerst</button>
-        <button class="sort-worst">Schlechtester zuerst</button>
+      <div style="margin-top:4px;border-top:1px solid var(--border);padding-top:12px">
+        <label style="color:var(--primary);font-weight:600;display:block;margin-bottom:4px;font-size:.92rem">v1.0 &ndash; 2026-04-06 (Erstver&ouml;ffentlichung)</label>
+        <span style="font-size:.85rem;color:var(--muted);font-weight:400;display:block;line-height:1.6">
+          <strong>Dashboard:</strong> Monatsauswahl, KPI-Filter, Summary-Karten (Gesamtziel, Erreicht, Mitarbeiter, Durchschnitt), Top-5-Rangliste, Mitarbeiter-Tabelle, Linienchart (8 Monate), CSV-Export, Aushang drucken<br>
+          <strong>Mitarbeiter-Dashboard:</strong> Einzelansicht pro Mitarbeiter mit Detail-KPIs, Ansicht "Alle" mit Rangliste, KPI-Verlauf-Chart<br>
+          <strong>KPI erfassen:</strong> Werte pro Mitarbeiter/KPI/Datum eingeben, Historie der letzten 3 Monate, letzte Eintr&auml;ge<br>
+          <strong>Mitarbeiter verwalten:</strong> Inline-Bearbeitung (Name, Zeitraum, KPI-Name/Ziel/Einheit), KPIs hinzuf&uuml;gen/l&ouml;schen, Mitarbeiter aktivieren/deaktivieren/l&ouml;schen, Mitarbeiter-Wizard mit KPI-&Uuml;bernahme<br>
+          <strong>Mitarbeiter-Detailseite:</strong> &Uumlbersicht aller KPIs und Monatswerte eines Mitarbeiters<br>
+          <strong>Einstellungen:</strong> Jahr wechseln, KPI-Modus (Mehrere/Nur Umsatz), Dark/Light Theme, Demo-Daten (2 Varianten), Daten zur&uuml;cksetzen<br>
+          <strong>Daten:</strong> JSON-Import/-Export, CSV-Export<br>
+          <strong>Aushang drucken:</strong> A4-optimierte Druckansicht mit allen Mitarbeitern, Monatswerten, Zielen, Abweichungen und Status-Info<br>
+          <strong>Mobile responsive:</strong> Vollst&auml;ndig angepasstes Layout f&uuml;r Tablets und Smartphones (Hamburger-Men&uuml;, gestapelte Elemente, Touch-Optimierung)<br>
+          <strong>Druck-Optimierung:</strong> Keine Browser-URL in den Seitenr&auml;ndern
+        </span>
       </div>
     </div>
-    <div id="rankList"></div>
   </div>
-</main>
+</div>
+
+<!-- EMPLOYEE DASHBOARD -->
+<div class="page" id="page-empdash">
+  <div class="app-header">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Menü öffnen">&#9776;</button>
+    <h1>Mitarbeiter-Dashboard</h1>
+    <div class="hdr-left"></div>
+  </div>
+  <div class="page-header"></div>
+  <div class="month-selector" id="empDashMonths"></div>
+  <div class="dash-filter" id="empDashFilter"></div>
+  <div class="dash-filter" id="empDashKpiFilter"></div>
+  <div id="empDashContent"></div>
+</div>
+
+<div class="modal-overlay" id="modalAddEmp">
+  <div class="modal">
+    <h3>Neuer Mitarbeiter</h3>
+    <div class="form-group"><label>Name</label><input type="text" id="newEmpName" placeholder="Max Mustermann"></div>
+    <div class="form-group"><label>Von (Start)</label><input type="month" id="newEmpStart"></div>
+    <div class="form-group"><label>Bis (Ende)</label><input type="month" id="newEmpEnd"></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalAddEmp')">Abbrechen</button><button class="btn-confirm" onclick="addEmployee()">Anlegen</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalEditEmp" style="display:none"></div>
+
+<!-- New Employee Wizard -->
+<div class="modal-overlay" id="modalWizard">
+  <div class="modal" style="max-width:540px;max-height:85vh;overflow-y:auto">
+    <h3>Neuen Mitarbeiter anlegen</h3>
+    <div id="wizardContent"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn-cancel" onclick="closeModal('modalWizard')" style="flex:1">Abbrechen</button>
+      <button class="btn-confirm" onclick="wizardSubmit()" style="flex:1;padding:12px;border:none;border-radius:var(--radius);font-size:.95rem;font-weight:600;background:var(--primary);color:#fff;cursor:pointer">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome Modal für Erstbesucher -->
+<div class="modal-overlay" id="modalWelcome">
+  <div class="modal" style="max-width:540px">
+    <h3>Willkommen bei MetricHub!</h3>
+    <p style="font-size:.92rem;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      Ihre Daten werden <strong>ausschlie&szlig;lich lokal im Browser</strong> gespeichert &ndash; nicht in einer Datenbank oder auf einem Server.
+      Sichern Sie Ihre Daten regelm&auml;&szlig;ig &uuml;ber das Seitenmen&uuml; &quot;Daten exportieren&quot;.
+    </p>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn-primary" style="flex:1;font-size:.88rem;padding:12px" onclick="goTo('faq');closeModal('modalWelcome')">&#10067; Zum FAQ &amp; Infos</button>
+      <button class="btn-primary" style="flex:1;font-size:.88rem;padding:12px;background:var(--green)" onclick="goTo('settings');closeModal('modalWelcome')">&#8594; Demo-Daten laden</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="closeModal('modalWelcome')">Sp&auml;ter ansehen</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
+const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
+const MONTHS=['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+let app={employees:[],
+  year:new Date().getFullYear(),month:new Date().getMonth()+1,kpiMode:'multi',theme:'light',dashKpi:'Umsatz'};
+let kpiChart=null;
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function fmt(n){return new Intl.NumberFormat('de-DE').format(Math.round(n))}
+function fmtEur(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)}
+function fmtVal(n,u){var s=new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(n);return s+(u==='pct'?'%':u==='eur'?' €':' Stk.')}
+function getActiveUnit(){for(var i=0;i<app.employees.length;i++){var k=app.employees[i].kpis||[];for(var j=0;j<k.length;j++){if(k[j].name===app.dashKpi)return k[j].unit||'stk'}}return'stk'}
+function getMonthKey(){return app.year+'-'+String(app.month).padStart(2,'0')}
+function getEmpMonthTarget(id,kpiFilter){var emp=app.employees.find(function(e){return e.id===id});if(!emp)return 0;var m=0;(emp.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)m+=(parseFloat(k.target)||0)/12});return m}
+function getTotalForMonth(emp,yr,mo,kpiFilter){const v=emp.values&&emp.values[String(yr)]&&emp.values[String(yr)][String(mo)]||{};if(app.kpiMode==='single')return v.Umsatz||0;let t=0;(emp.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)t+=(parseFloat(v[k.name])||0)});return t}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function isActiveInMonth(emp,yr,mo){var empMonth=yr*100+mo;var from=emp.startMonth||0;var to=emp.endMonth||999999;return empMonth>=from&&empMonth<=to}
 
-const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+/* CENTRALIZED KPI UNIT MANAGEMENT */
+function getKpiUnit(name){for(var i=0;i<app.employees.length;i++){var k=app.employees[i].kpis||[];for(var j=0;j<k.length;j++){if(k[j].name===name&&(k[j].unit||'stk')!=='stk')return k[j].unit||'stk'}}return'stk'}
+function syncKpiUnits(name,unit){for(var i=0;i<app.employees.length;i++){var k=app.employees[i].kpis||[];for(var j=0;j<k.length;j++){if(k[j].name===name)k[j].unit=unit}}save();if(kpiChart)renderDashboard();renderEmpList()}
 
-/* ================= DATA ================= */
-let employees = []; // {id, name, status, kpis:[{name,target}], values:{year:{month:{kpiName:value}}}}
+/* PERSISTENCE */
+function save(){localStorage.setItem('mh_kpi',JSON.stringify(app.employees))}
+function loadFake(){return FAKE_EMPLOYEES}
 
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)}
+function openModal(id){if(id[0]!=='#')id='#'+id;$(id).classList.add('open')}
+function closeModal(id){if(id[0]!=='#')id='#'+id;$(id).classList.remove('open')}
+function openAddEmpModal(){
+  $('#newEmpName').value='';
+  var now=new Date();
+  $('#newEmpStart').value=now.getFullYear()+'-01';
+  $('#newEmpEnd').value=now.getFullYear()+'-12';
+  openModal('modalAddEmp')
+}
+function openSidebar(){var sb=$('#sidebar'),ov=$('#sidebarOverlay');if(sb){sb.classList.add('open')}if(ov){ov.classList.add('active')}}
+function closeSidebar(){var sb=$('#sidebar'),ov=$('#sidebarOverlay');if(sb){sb.classList.remove('open')}if(ov){ov.classList.remove('active')}}
 
-function save() {
-  localStorage.setItem('kpiTracker', JSON.stringify(employees));
+var _wizardKpis=[];
+function openNewEmpWizard(){
+  _wizardKpis=[];
+  var now=new Date();
+  var sm=now.getFullYear()+'-01';
+  var em=now.getFullYear()+'-12';
+  var uniq=[];
+  app.employees.forEach(function(e){(e.kpis||[]).forEach(function(k){if(uniq.indexOf(k.name)===-1)uniq.push(k.name)})});
+  var html='<div class="form-group"><label>Name <span style="color:var(--muted);font-size:.75rem">(Vorname Nachname oder K\u00fcrzel)</span></label><input type="text" id="wizName" placeholder="z.B. Max Mustermann"></div>';
+  html+='<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="form-group" style="flex:1;min-width:120px"><label>Von</label><input type="month" id="wizStart" value="'+sm+'"></div>';
+  html+='<div class="form-group" style="flex:1;min-width:120px"><label>Bis</label><input type="month" id="wizEnd" value="'+em+'"></div></div>';
+  html+='<div class="form-group"><label>KPIs <span style="color:var(--muted);font-size:.75rem">(vorhandene KPIs \u00fcbernehmen)</span></label>';
+  html+='<div id="wizKpiList">';
+  if(uniq.length){
+    uniq.forEach(function(name,i){
+      var u=getKpiUnit(name);
+      var unitLabel={stk:'Stk.',eur:'\u20ac',pct:'%'};
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">';
+      html+='<input type="checkbox" id="wizKpi'+i+'" data-name="'+esc(name)+'" onchange="wizardToggleKpi('+i+')">';
+      html+='<label for="wizKpi'+i+'" style="cursor:pointer;flex:1;font-weight:500">'+esc(name)+' <span style="font-size:.75rem;color:var(--muted)">('+unitLabel[u]+')</span></label>';
+      html+='<input type="number" id="wizKpiTarget'+i+'" placeholder="Jahresziel" min="0" step="any" style="width:110px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--card);color:var(--text)" disabled>';
+      html+='</div>';
+    });
+  }else{html+='<div style="padding:8px;color:var(--muted);font-size:.85rem">Keine KPIs vorhanden</div>'}
+  html+='</div></div>';
+  $('#wizardContent').innerHTML=html;
+  openModal('#modalWizard');
 }
 
-function load() {
-  try { employees = JSON.parse(localStorage.getItem('kpiTracker')) || []; }
-  catch { employees = []; }
-  employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
+function wizardToggleKpi(i){
+  var cb=$('#wizKpi'+i),inp=$('#wizKpiTarget'+i);
+  if(cb.checked){
+    inp.disabled=false;
+    _wizardKpis.push({idx:i});
+  }else{
+    inp.disabled=true;
+    inp.value='';
+    _wizardKpis=_wizardKpis.filter(function(k){return k.idx!==i});
+  }
 }
 
-function getNow() {
-  const n = new Date();
-  return { y: n.getFullYear(), m: n.getMonth() + 1 };
+function wizardSubmit(){
+  var name=$('#wizName').value.trim();
+  if(!name)return toast('Bitte Name eingeben');
+  var sm=$('#wizStart').value,ev=$('#wizEnd').value;
+  var startMonth=sm?parseInt(sm.substring(0,4))*100+parseInt(sm.substring(5,7)):0;
+  var endMonth=ev?parseInt(ev.substring(0,4))*100+parseInt(ev.substring(5,7)):0;
+  var kpis=[];var dupCheck={};
+  _wizardKpis.forEach(function(k){
+    var cb=$('#wizKpi'+k.idx),inp=$('#wizKpiTarget'+k.idx);
+    var kpiName=cb.getAttribute('data-name');
+    var target=parseFloat(inp.value)||0;
+    if(!kpiName||dupCheck[kpiName])return;
+    dupCheck[kpiName]=true;
+    kpis.push({name:kpiName,target:target,unit:getKpiUnit(kpiName)});
+  });
+  app.employees.push({id:genId(),name:name,kpis:kpis,startMonth:startMonth,endMonth:endMonth,values:{}});
+  save();renderEmpList();closeModal('#modalWizard');toast('Mitarbeiter angelegt');
+  if(kpiChart)renderDashboard();
 }
 
-/* ================= THEME ================= */
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  $('#themeBtn').innerHTML = t === 'dark' ? '&#127769;' : '&#9728;&#65039;';
-  localStorage.setItem('kpiTheme', t);
+function goTo(page,data){
+  closeSidebar();
+  var cur=document.querySelector('.page.active');if(cur)cur.classList.remove('active');
+  var target=$('#page-'+page);if(target){target.classList.add('active');target.scrollTop=0}
+  if(page==='dashboard')renderDashboard();
+  if(page==='entry')renderEntry();
+  if(page==='employees')renderEmpList();
+  if(page==='empdash')renderEmpDash();
+  if(page==='settings')renderSettings();
+  if(page==='empdetail'&&data)renderEmpDetail(data);
 }
 
-function toggleTheme() {
-  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+/* DASHBOARD */
+function pickDashMonth(m){app.month=m;localStorage.setItem('mh_month',m);renderDashboard()}
+function pickDashKpi(val){app.dashKpi=val;localStorage.setItem('mh_dashKpi',val);renderDashboard()}
+function renderDashboard(){
+  var mc=$('#dashMonths');mc.innerHTML='';
+  MONTHS.forEach(function(m,i){
+    var btn=document.createElement('button');btn.className='month-btn'+((i+1===app.month)?' active':'');
+    btn.textContent=m;btn.onclick=function(){pickDashMonth(i+1)};mc.appendChild(btn)});
+
+  /* KPI filter dropdown */
+  var kpiNames=[];
+  app.employees.forEach(function(e){(e.kpis||[]).forEach(function(k){if(kpiNames.indexOf(k.name)===-1)kpiNames.push(k.name)})});
+  var kf=$('#dashKpiFilter');if(kf){
+    var fh='<label>KPI</label><select onchange="pickDashKpi(this.value)">';
+    kpiNames.forEach(function(n){fh+='<option value="'+esc(n)+'"'+(app.dashKpi===n?' selected':'')+'>'+n+'</option>'});
+    fh+='</select>';kf.innerHTML=fh;}
+
+  /* If selected KPI no longer exists, default to Umsatz */
+  if(kpiNames.indexOf(app.dashKpi)===-1)app.dashKpi='Umsatz';
+  var kpiFilter=app.dashKpi;
+  var employees=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)});
+  var unit=getActiveUnit();
+  /* Kumulierte Werte: Jan–gewählter Monat */
+  var cumulScores=employees.map(function(emp){var ct=0,ctg=0;for(var mm=1;mm<=app.month;mm++){ct+=getTotalForMonth(emp,app.year,mm,kpiFilter);ctg+=getEmpMonthTarget(emp.id,kpiFilter)}var cp=ctg?Math.round(ct/ctg*100):0;return{emp:emp,total:ct,target:ctg,diff:ct-ctg,pct:cp}});
+  cumulScores.sort(function(a,b){return b.pct-a.pct});
+
+  /* Summary-Karten: kumulierte Sicht */
+  var cumulTotR=0,cumulTotT=0;
+  cumulScores.forEach(function(s){cumulTotR+=s.total;cumulTotT+=s.target});
+  var cumulPct=cumulTotT?Math.round(cumulTotR/cumulTotT*100):0;
+  var cumulDiff=cumulTotR-cumulTotT;
+  var cumulAvg=employees.length?Math.round(cumulTotR/app.month):0;
+  $('#dashSummary').innerHTML='<div class="summary-card'+(cumulPct>=100?' green':'')+'"><div class="s-label">Gesamtziel Jan–'+MONTHS[app.month-1]+'</div><div class="s-value">'+fmtVal(cumulTotT,unit)+'</div><div class="s-sub" style="color:'+(cumulDiff>=0?'var(--green)':'var(--red)')+'">'+(cumulDiff>=0?'+':'')+fmtVal(cumulDiff,unit)+'</div></div>'
+    +'<div class="summary-card"><div class="s-label">Erreicht Jan–'+MONTHS[app.month-1]+'</div><div class="s-value">'+fmtVal(cumulTotR,unit)+'</div><div class="s-sub" style="color:'+(cumulPct>=100?'var(--green)':'var(--red)')+'">'+cumulPct+'% Erf\u00fcllung</div></div>'
+    +'<div class="summary-card"><div class="s-label">Mitarbeiter</div><div class="s-value">'+employees.length+'</div><div class="s-sub" style="color:var(--muted)">Aktiv</div></div>'
+    +'<div class="summary-card"><div class="s-label">Pro Monat Ø</div><div class="s-value">'+fmtVal(cumulAvg,unit)+'</div><div class="s-sub" style="color:var(--muted)">Seit Jan</div></div>';
+
+  /* Top-5 – kumuliert */
+  var top=cumulScores.slice(0,5);
+  var topEl=$('#dashTopEmp');
+  if(top.length){
+    var th='<h3>Top 5 – kumuliert Jan–'+MONTHS[app.month-1]+'</h3>';
+    top.forEach(function(s,i){
+      var barColor=s.pct>=100?'var(--green)':s.pct>=50?'var(--orange)':'var(--red)';
+      th+='<div class="top-emp" onclick="goTo(\'empdetail\',\''+s.emp.id+'\')">';
+      th+='<div style="width:30px;height:30px;border-radius:50%;background:'+(i<3?'var(--primary)':'var(--border)');
+      th+=';color:'+(i<3?'#fff':'var(--text)');
+      th+=';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0">'+(i+1)+'</div>';
+      th+='<div class="top-avatar">'+esc(s.emp.name.charAt(0))+'</div>';
+      th+='<div class="top-info"><div class="top-name">'+esc(s.emp.name)+'</div>';
+      th+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
+      th+='<span style="font-size:.9rem;font-weight:600">'+fmtVal(s.total,unit)+'</span>';
+      th+='<span style="font-size:.8rem;color:'+(s.diff>=0?'var(--green)':'var(--red)')+';font-weight:600">'+(s.diff>=0?'+':'')+fmtVal(s.diff,unit)+'</span>';
+      th+='<span style="font-size:.8rem;padding:2px 8px;border-radius:6px;background:'+(s.pct>=100?'var(--green-bg)':s.pct>=50?'#fff7ed':'var(--red-bg)');
+      th+=';color:'+(s.pct>=100?'var(--green-text)':s.pct>=50?'var(--orange)':'var(--red-text)')+';font-weight:700">'+s.pct+'%</span>';
+      th+='</div>';
+      th+=(s.target?'<div class="kpi-progress"><div class="kpi-progress-fill" style="width:'+Math.min(s.pct,100)+'%;background:'+barColor+'"></div></div>':'');
+      th+='</div><div class="top-chevron">&#187;</div></div>';
+    });
+    topEl.innerHTML=th;
+  }else{topEl.innerHTML='<div class="empty-state"><p>Keine Daten</p></div>'}
+  renderDashEmpTable(cumulScores,kpiFilter,unit);
+}
+function renderDashEmpTable(scores,kpiFilter,unit){
+  var tbl=$('#dashEmpTable');
+  if(!scores.length){tbl.innerHTML='<div class="empty-state"><div class="empty-icon">&#128100;</div><p>Keine Mitarbeiter</p></div>';return}
+  var html='<div class="card-flat"><div class="emp-table">';
+  scores.forEach(function(s,idx){
+    var barColor=s.pct>=100?'var(--green)':s.pct>=50?'var(--orange)':'var(--red)';
+    html+='<div class="emp-list-item" onclick="goTo(\'empdetail\',\''+s.emp.id+'\')">';
+    html+='<div style="width:28px;height:28px;border-radius:50%;background:'+(idx<3?'var(--primary)':'var(--border)');
+    html+=';color:'+(idx<3?'#fff':'var(--text)');
+    html+=';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0">'+(idx+1)+'</div>';
+    html+='<div class="top-avatar">'+esc(s.emp.name.charAt(0))+'</div>';
+    html+='<div style="flex:1"><div class="emp-name">'+esc(s.emp.name)+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
+    html+='<span style="font-size:.9rem;font-weight:600">'+fmtVal(s.total,unit)+'</span>';
+    html+='<span style="font-size:.8rem;color:'+(s.diff>=0?'var(--green)':'var(--red)')+';font-weight:600">'+(s.diff>=0?'+':'')+fmtVal(s.diff,unit)+'</span>';
+    html+='<span style="font-size:.8rem;padding:2px 8px;border-radius:6px;background:'+(s.pct>=100?'var(--green-bg)':s.pct>=50?'#fff7ed':'var(--red-bg)');
+    html+=';color:'+(s.pct>=100?'var(--green-text)':s.pct>=50?'var(--orange)':'var(--red-text)')+';font-weight:700">'+s.pct+'%</span>';
+    html+='</div>';
+    html+=(s.target?'<div class="kpi-progress"><div class="kpi-progress-fill" style="width:'+Math.min(s.pct,100)+'%;background:'+barColor+'"></div></div>':'');
+    html+='</div><div class="top-chevron">&#187;</div></div>';
+  });
+  html+='</div></div>';
+  tbl.innerHTML=html;
+  renderKpiChart(scores.map(function(s){return s.emp}),kpiFilter);
 }
 
-// Load saved theme or respect system preference
-(function initTheme() {
-  const saved = localStorage.getItem('kpiTheme');
-  if (saved) { applyTheme(saved); return; }
-  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-})();
-
-$('#themeBtn').addEventListener('click', toggleTheme);
-
-/* ================= IMPORT / EXPORT ================= */
-function exportData() {
-  const blob = new Blob([JSON.stringify(employees, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'kpi-tracker_' + new Date().toISOString().slice(0, 10) + '.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+/* KPI CHART */
+function renderKpiChart(employees,kpiFilter){
+  var canvas=document.getElementById('kpiChart');
+  if(!canvas)return;
+  if(typeof Chart==='undefined')return;
+  if(kpiChart){kpiChart.destroy();kpiChart=null}
+  if(!(employees||[]).length)return;
+  var labels=MONTHS.slice(0,8);
+  var datasets=[];
+  var colors=['#2563eb','#16a34a','#ea580c','#9333ea','#dc2626','#0891b2','#ca8a04','#4f46e5'];
+  employees.forEach(function(emp,ei){
+    var data=[];
+    for(var m=1;m<=8;m++){data.push(getTotalForMonth(emp,app.year,m,kpiFilter||null))}
+    datasets.push({
+      label:emp.name,
+      data:data,
+      borderColor:colors[ei%colors.length],
+      backgroundColor:colors[ei%colors.length]+'22',
+      fill:false,
+      tension:0.3,
+      pointRadius:3,
+      pointHitRadius:6,
+      borderWidth:2
+    });
+  });
+  var isDark=app.theme==='dark';
+  kpiChart=new Chart(canvas,{
+    type:'line',
+    data:{labels:labels,datasets:datasets},
+    options:{responsive:true,plugins:{legend:{labels:{color:isDark?'#e2e8f0':'#111827',font:{size:11},boxWidth:14}}},
+    scales:{x:{ticks:{color:isDark?'#94a3b8':'#6b7280',font:{size:11}},grid:{color:isDark?'#334155':'#e5e7eb'}},y:{ticks:{color:isDark?'#94a3b8':'#6b7280',font:{size:10}},grid:{color:isDark?'#334155':'#e5e7eb'}}}}
+  });
 }
 
-function importData() {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = async e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    try {
-      const txt = await f.text();
-      const d = JSON.parse(txt);
-      if (!Array.isArray(d)) throw 0;
-      if (confirm('Alle aktuellen Daten werden überschrieben. Fortfahren?')) {
-        employees = d;
-        employees.forEach(emp => { if (!('status' in emp)) emp.status = 'aktiv'; });
-        save();
-        renderEmpList();
-        alert('Import erfolgreich.');
-      }
-    } catch { alert('Ungültige Datei.'); }
+/* ENTRY */
+function renderEntry(){
+  var now=new Date();
+  $('#entryDate').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var sel=$('#entryEmp'),active=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)});
+  sel.innerHTML='<option value="">-- w\u00e4hlen --</option>';
+  active.forEach(function(e){var o=document.createElement('option');o.value=e.id;o.textContent=e.name;sel.appendChild(o)});
+  $('#entryKpi').innerHTML='<option value="">-- erst Mitarbeiter w\u00e4hlen --</option>';
+  $('#entryPastValues').innerHTML='';
+  renderLastEntries();
+}
+
+function onEntryEmpChange(){
+  var empId=$('#entryEmp').value;
+  var kpiSel=$('#entryKpi');
+  kpiSel.innerHTML='<option value="">-- KPI w\u00e4hlen --</option>';
+  $('#entryPastValues').innerHTML='';
+  if(!empId)return;
+  var emp=app.employees.find(function(e){return e.id===empId});
+  if(!emp)return;
+  (emp.kpis||[]).forEach(function(k,i){
+    var u=(k.unit||'stk');
+    var unitLabel={stk:'Stk.',eur:'€',pct:'%'};
+    var o=document.createElement('option');
+    o.value=k.name;o.textContent=k.name+' ('+unitLabel[u]+')';
+    kpiSel.appendChild(o);
+  });
+}
+
+function onEntryKpiChange(){
+  showEntryPastValues();
+}
+
+function showEntryPastValues(){
+  var c=$('#entryPastValues');
+  var empId=$('#entryEmp').value,kpiName=$('#entryKpi').value;
+  if(!empId||!kpiName){c.innerHTML='';return}
+  var emp=app.employees.find(function(e){return e.id===empId});
+  if(!emp){c.innerHTML='';return}
+  var yr=app.year,mo=app.month;
+  var vals=emp.values&&emp.values[String(yr)]?emp.values[String(yr)]:{};
+  var hasData=false;
+  for(var i=0;i<3;i++){var m=mo-i;if(m<=0)m+=12;var y=yr;if(mo-i<=0)y=yr-1;if(m<=0){m+=12;y=yr-1};var mKey=String(m);var yKey=String(y);if(vals[mKey]){hasData=true;break}}
+  if(!hasData){c.innerHTML='';return}
+  var html='<div class="section-title" style="margin-top:16px;padding-top:0">Vorhandene Werte – '+esc(kpiName)+'</div>';
+  html+='<div style="overflow-x:auto">';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr>';
+  html+='<th style="text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--border)">Monat</th>';
+  for(var i=0;i<3;i++){
+    var m=mo-i,y=yr;
+    while(m<=0){m+=12;y--}
+    html+='<th style="text-align:right;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--border)">'+MONTHS[m-1]+' '+y+'</th>';
+  }
+  html+='</tr></thead><tbody>';
+  if(vals){
+    html+='<tr><td style="padding:6px 10px;border-top:1px solid var(--border)">'+MONTHS[mo-1]+' '+yr+'</td>';
+    var v=vals[String(mo)];
+    html+='<td style="text-align:right;padding:6px 10px;border-top:1px solid var(--border)">'+(v&&v[kpiName]?fmt(v[kpiName]):'<span style="color:var(--muted)">-</span>')+'</td>';
+    var m2=mo-1,y2=yr;if(m2<=0){m2+=12;y2--;}var v2=vals[String(m2)];
+    html+='<td style="text-align:right;padding:6px 10px;border-top:1px solid var(--border)">'+(v2&&v2[kpiName]?fmt(v2[kpiName]):'<span style="color:var(--muted)">-</span>')+'</td>';
+    var m3=mo-2,y3=yr;while(m3<=0){m3+=12;y3--;}var v3=vals[String(m3)];
+    html+='<td style="text-align:right;padding:6px 10px;border-top:1px solid var(--border)">'+(v3&&v3[kpiName]?fmt(v3[kpiName]):'<span style="color:var(--muted)">-</span>')+'</td>';
+    html+='</tr>';
+  }
+  html+='</tbody></table></div>';
+  c.innerHTML=html;
+}
+
+function saveEntry(){
+  var empId=$('#entryEmp').value,kpiName=$('#entryKpi').value,val=parseFloat($('#entryValue').value);
+  if(!empId)return toast('Bitte Mitarbeiter w\u00e4hlen');
+  if(!kpiName)return toast('Bitte KPI w\u00e4hlen');
+  if(isNaN(val))return toast('Bitte Wert eingeben');
+  if(val<0)return toast('Wert darf nicht negativ sein');
+  var ds=$('#entryDate').value;if(!ds)return toast('Bitte Datum w\u00e4hlen');
+  var d=new Date(ds),yr=d.getFullYear(),mo=d.getMonth()+1;
+  var emp=app.employees.find(function(e){return e.id===empId});
+  if(!emp)return toast('Mitarbeiter nicht gefunden');
+  emp.values=emp.values||{};emp.values[String(yr)]=emp.values[String(yr)]||{};
+  emp.values[String(yr)][String(mo)]=emp.values[String(yr)][String(mo)]||{};
+  emp.values[String(yr)][String(mo)][kpiName]=val;
+  save();$('#entryValue').value='';toast('Gespeichert!');renderLastEntries();showEntryPastValues();
+}
+function renderLastEntries(){
+  var c=$('#lastEntries'),entries=[];
+  app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)}).forEach(function(emp){
+    var yr=app.year,mo=app.month;
+    var vals=emp.values&&emp.values[String(yr)]&&emp.values[String(yr)][String(mo)]||{};
+    var total=0;Object.keys(vals).forEach(function(k){total+=(parseFloat(vals[k])||0)});
+    if(total>0)entries.push({emp:emp,total:total});
+  });
+  entries.sort(function(a,b){return b.total-a.total});
+  if(!entries.length){c.innerHTML='<div class="empty-state"><p>Keine Eintr\u00e4ge f\u00fcr '+MONTHS[app.month-1]+'</p></div>';return}
+  var html='';entries.slice(0,10).forEach(function(e){
+    html+='<div class="ziel-row"><div class="top-avatar">'+esc(e.emp.name.charAt(0))+'</div><div class="ziel-name">'+esc(e.emp.name)+'</div><div class="ziel-val"><strong>'+fmtEur(e.total)+'</strong></div></div>';
+  });c.innerHTML=html;
+}
+
+/* EMPLOYEES - new layout */
+var _empCollapsed={inactive:true};
+
+function empLastName(name){var parts=name.trim().split(/\s+/);return parts.length>1?parts[parts.length-1].toLowerCase():name.toLowerCase()}
+function sortEmpByName(a,b){var na=empLastName(a.name),nb=empLastName(b.name);return na<nb?-1:na>nb?1:0}
+
+function renderEmpList(){
+  /* Month badge */
+  var badge=$('#empMonthBadge');
+  if(badge)badge.innerHTML='<div class="emp-month-badge">Ausgew&#228;hlter Monat: <span>'+MONTHS[app.month-1]+' '+app.year+'</span></div>';
+
+  var active=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)}).sort(sortEmpByName);
+  var inactive=app.employees.filter(function(e){return !isActiveInMonth(e,app.year,app.month)}).sort(sortEmpByName);
+  renderEmpSection('empSectionActive','Aktive Mitarbeiter',active,true);
+  renderEmpSection('empSectionInactive','Inaktive Mitarbeiter',inactive,false);
+}
+
+function renderEmpSection(containerId,title,emps,isSectionActive){
+  var c=$('#'+containerId);
+  if(!c)return;
+  if(!emps.length){c.innerHTML='<div class="emp-section"><div class="emp-section-header" style="cursor:default"><h3>'+title+'</h3><span class="count">0</span></div><div style="padding:20px;text-align:center;color:var(--muted);font-size:.9rem">Keine Eintr&auml;ge</div></div>';return}
+  var col=_empCollapsed[isSectionActive?'active':'inactive'];
+  var html='<div class="emp-section">';
+  html+='<div class="emp-section-header" onclick="toggleEmpSection(\''+(isSectionActive?'active':'inactive')+'\')">';
+  html+='<span class="arrow'+(col?' collapsed':'')+'">&#9660;</span>';
+  html+='<h3>'+title+'</h3>';
+  html+='<span class="count">'+emps.length+'</span></div>';
+  html+='<div class="emp-section-body'+(col?' collapsed':'')+'" id="empBody'+(isSectionActive?'Act':'Inact')+'">';
+  emps.forEach(function(emp){html+=renderEmpCard(emp,isSectionActive)});
+  html+='</div></div>';
+  c.innerHTML=html;
+}
+
+function toggleEmpSection(which){
+  if(which==='active')_empCollapsed.active=!_empCollapsed.active;
+  else _empCollapsed.inactive=!_empCollapsed.inactive;
+  renderEmpList();
+}
+
+function renderEmpCard(emp,isSectionActive){
+  var sm=emp.startMonth?Math.floor(emp.startMonth/100)+'-'+String(emp.startMonth%100).padStart(2,'0'):'';
+  var em=emp.endMonth?Math.floor(emp.endMonth/100)+'-'+String(emp.endMonth%100).padStart(2,'0'):'';
+  var html='<div class="emp-card'+(isSectionActive?'':' inactive-emp')+'">';
+  html+='<div class="emp-card-top"><div class="top-avatar">'+esc(emp.name.charAt(0))+'</div><div class="emp-info">';
+  html+='<div class="emp-name">'+esc(emp.name)+'</div>';
+  html+='<div class="emp-date-range">'+(sm||'?')+' &mdash; '+(em||'?')+'</div>';
+  html+='</div></div>';
+
+  /* Edit row: Name */
+  html+='<div class="emp-edit-row"><label>Name</label>';
+  html+='<input type="text" value="'+esc(emp.name)+'" id="ename_'+emp.id+'" onchange="updateEmpName(\''+emp.id+'\')">';
+  html+='</div>';
+
+  /* Edit row: date range */
+  html+='<div class="emp-edit-row"><label>Von</label>';
+  html+='<input type="month" value="'+sm+'" id="smonth_'+emp.id+'" onchange="updateEmpDates(\''+emp.id+'\')">';
+  html+='<label>Bis</label>';
+  html+='<input type="month" value="'+em+'" id="emonth_'+emp.id+'" onchange="updateEmpDates(\''+emp.id+'\')">';
+  html+='</div>';
+
+  /* KPIs table */
+  html+='<div style="margin-top:10px;font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em">KPIs</div>';
+  if((emp.kpis||[]).length){
+    html+='<table class="emp-kpi-table">';
+    html+='<thead><tr><th>KPI-Name</th><th style="width:80px">Jahresziel</th><th style="width:54px">Einheit</th><th style="width:40px"></th></tr></thead>';
+    html+='<tbody>';
+    (emp.kpis||[]).forEach(function(kpi,ki){
+      var u=kpi.unit||'stk';
+      html+='<tr>';
+      html+='<td><input type="text" class="kpi-name-input" value="'+esc(kpi.name)+'" id="kpname_'+emp.id+'_'+ki+'" onchange="updateKpiName(\''+emp.id+'\','+ki+')"></td>';
+      html+='<td><input type="number" class="kpi-target-input" value="'+kpi.target+'" id="kptarg_'+emp.id+'_'+ki+'" placeholder="Ziel" min="0" step="any" onchange="updateKpiTarget(\''+emp.id+'\','+ki+')"></td>';
+      html+='<td><select class="kpi-unit-select" id="kpunit_'+emp.id+'_'+ki+'" onchange="updateKpiUnit(\''+emp.id+'\','+ki+')">';
+      html+='<option value="stk"'+(u==='stk'?' selected':'')+'>Stk.</option>';
+      html+='<option value="eur"'+(u==='eur'?' selected':'')+'>€</option>';
+      html+='<option value="pct"'+(u==='pct'?' selected':'')+'>%</option>';
+      html+='</select></td>';
+      html+='<td><button class="kpi-delete-btn" onclick="deleteKpiInline(\''+emp.id+'\','+ki+')">&times;</button></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+  }else{
+    html+='<div style="padding:6px 0;color:var(--muted);font-size:.85rem">Keine KPIs</div>';
+  }
+
+  /* Add KPI row - matches table columns */
+  html+='<div class="add-kpi-row">';
+  html+='<input type="text" placeholder="KPI Name" id="addkpi_name_'+emp.id+'">';
+  html+='<input type="number" placeholder="Ziel" id="addkpi_target_'+emp.id+'" min="0" step="any">';
+  html+='<select id="addkpi_unit_'+emp.id+'" style="padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--card);color:var(--text)"><option value="stk">Stk.</option><option value="eur">€</option><option value="pct">%</option></select>';
+  html+='<div class="kpi-add-spacer"><button class="btn-sm primary" onclick="addKpiInline(\''+emp.id+'\')">&#65291;</button></div>';
+  html+='</div>';
+
+  /* Actions: deactivate, reactivate, delete */
+  html+='<div class="emp-card-actions">';
+  if(isSectionActive){
+    html+='<button class="btn-sm outline" onclick="deactivateEmp(\''+emp.id+'\')">&#8634; Deaktivieren</button>';
+  }else{
+    html+='<button class="btn-sm success" onclick="reactivateEmp(\''+emp.id+'\')">&#8634; Reaktivieren</button>';
+  }
+  html+='<button class="btn-sm danger" onclick="deleteEmployee(\''+emp.id+'\')">L&ouml;schen</button>';
+  html+='</div>';
+
+  html+='</div>';
+  return html;
+}
+
+function updateEmpName(id){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;var n=$('#ename_'+id).value.trim();
+  if(!n)return toast('Name darf nicht leer sein');
+  emp.name=n;save();renderEmpList();toast('Name ge&auml;ndert');
+}
+
+function updateEmpDates(id){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  var sv=$('#smonth_'+id).value,ev=$('#emonth_'+id).value;
+  emp.startMonth=sv?parseInt(sv.substring(0,4))*100+parseInt(sv.substring(5,7)):0;
+  emp.endMonth=ev?parseInt(ev.substring(0,4))*100+parseInt(ev.substring(5,7)):0;
+  save();renderEmpList();toast('Zeitraum ge&auml;ndert');
+}
+
+function updateKpiName(id,idx){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  emp.kpis[idx].name=$('#kpname_'+id+'_'+idx).value.trim();
+  save();toast('KPI-Name ge&auml;ndert');
+}
+
+function updateKpiTarget(id,idx){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  emp.kpis[idx].target=parseFloat($('#kptarg_'+id+'_'+idx).value)||0;
+  save();toast('KPI-Ziel ge&auml;ndert');
+}
+
+function updateKpiUnit(id,idx){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  var u=$('#kpunit_'+id+'_'+idx).value;
+  syncKpiUnits(emp.kpis[idx].name,u);
+  toast('Einheit &uuml;berall aktualisiert');
+}
+
+function addKpiInline(id){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  var name=$('#addkpi_name_'+id).value.trim();
+  var target=parseFloat($('#addkpi_target_'+id).value)||0;
+  if(!name)return toast('KPI-Name ausf\u00fcllen');
+  if(!emp.kpis)emp.kpis=[];
+  if(emp.kpis.some(function(k){return k.name===name}))return toast('KPI existiert bereits');
+  var unit=getKpiUnit(name);
+  emp.kpis.push({name:name,target:target,unit:unit});
+  save();renderEmpList();toast('KPI hinzugef\u00fcgt');
+  if(kpiChart)renderDashboard();
+}
+
+function deleteKpiInline(id,idx){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  var removed=emp.kpis[idx].name;
+  emp.kpis.splice(idx,1);
+  for(var yr in emp.values){for(var mo in emp.values[yr]){delete emp.values[yr][mo][removed]}}
+  save();renderEmpList();toast('KPI gel\u00f6scht');
+}
+
+function deactivateEmp(id){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  emp.endMonth=(app.year*100)+app.month-1;
+  save();renderEmpList();toast(emp.name+' deaktiviert');
+}
+
+function reactivateEmp(id){
+  var emp=app.employees.find(function(e){return e.id===id});
+  if(!emp)return;
+  emp.startMonth=app.year*100+1;emp.endMonth=app.year*100+12;
+  save();renderEmpList();toast(emp.name+' reaktiviert');
+}
+
+function deleteEmployee(id){
+  if(!confirm('Mitarbeiter l\u00f6schen? Alle Daten werden entfernt.'))return;
+  app.employees=app.employees.filter(function(e){return e.id!==id});save();renderEmpList();toast('Mitarbeiter gel\u00f6scht');
+}
+
+/* EMPLOYEE DETAIL */
+function renderEmpDetail(empId){
+  var emp=app.employees.find(function(e){return e.id===empId});if(!emp)return goTo('employees');
+  $('#empDetailName').textContent=emp.name;var c=$('#empDetailKPIs');
+
+  /* KPI add form */
+  var kpiForm='<div class="card"><div style="font-weight:700;margin-bottom:10px">KPIs verwalten</div>';
+  kpiForm+='<div style="display:flex;gap:8px;margin-bottom:8px"><input type="text" id="addKpiName" placeholder="KPI Name" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.9rem"><input type="number" id="addKpiTarget" placeholder="Jahresziel" style="width:100px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.9rem"><button class="btn-primary" style="width:auto;padding:8px 16px;font-size:.85rem" onclick="addEmpKpi(\''+emp.id+'\')">&#65291;</button></div>';
+  (emp.kpis||[]).forEach(function(kpi,ki){
+    kpiForm+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600">'+esc(kpi.name)+'</span><span style="color:var(--muted);font-size:.85rem">Ziel: '+fmt(kpi.target)+'</span><button style="border:none;background:none;color:var(--red);cursor:pointer;font-size:1.1rem" onclick="deleteEmpKpi(\''+emp.id+'\','+ki+')">&times;</button></div>';
+  });
+  kpiForm+='</div>';
+
+  if(app.kpiMode==='single'){
+    var html=kpiForm+'<table class="kpi-table"><thead><tr><th>Monat</th><th>Ist</th><th>Ziel</th><th>Diff</th></tr></thead><tbody>';
+    for(var m=1;m<=12;m++){var val=(emp.values&&emp.values[String(app.year)]&&emp.values[String(app.year)][String(m)]&&emp.values[String(app.year)][String(m)].Umsatz)||0;if(!val)continue;var tg=getEmpMonthTarget(emp.id),df=val-tg;
+      html+='<tr><td class="kpi-name">'+MONTHS[m-1]+'</td><td><strong>'+fmtEur(val)+'</strong></td><td class="kpi-target">'+fmtEur(tg)+'</td><td style="color:'+(df>=0?'var(--green)':'var(--red)')+';font-weight:600;text-align:right">'+(df>=0?'+':'')+fmtEur(df)+'</td></tr>';}
+    c.innerHTML=html+'</tbody></table>';
+  }else{
+    var html=kpiForm;
+    (emp.kpis||[]).forEach(function(kpi){
+      html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>'+esc(kpi.name)+'</strong><span style="font-size:.78rem;color:var(--muted)">Ziel: '+fmt(kpi.target)+'</span></div><table class="kpi-table"><thead><tr><th>Monat</th><th>Ist</th><th>Soll</th></tr></thead><tbody>';
+      for(var m=1;m<=12;m++){var val=(emp.values&&emp.values[String(app.year)]&&emp.values[String(app.year)][String(m)]&&emp.values[String(app.year)][String(m)][kpi.name])||0;if(!val)continue;
+        html+='<tr><td class="kpi-name">'+MONTHS[m-1]+'</td><td><strong>'+fmt(val)+'</strong></td><td class="kpi-target">'+fmt(kpi.target/12)+'</td></tr>';}
+      var yt=0;Object.values(emp.values&&emp.values[String(app.year)]||{}).forEach(function(v){yt+=(parseFloat(v&&v[kpi.name])||0)});
+      var yp=kpi.target?Math.round(yt/kpi.target*100):0;
+      html+='<tr style="font-weight:700"><td>Gesamt</td><td>'+fmt(yt)+'</td><td class="kpi-target">'+yp+'%</td></tr></tbody></table></div>';
+    });
+    if(!(emp.kpis||[]).length)html+='<div class="empty-state"><p>Keine KPIs definiert</p></div>';
+    c.innerHTML=html;
+  }
+}
+
+function addEmpKpi(empId){
+  var name=$('#addKpiName').value.trim();
+  var target=parseFloat($('#addKpiTarget').value)||0;
+  if(!name)return toast('KPI-Name ausfüllen');
+  var emp=app.employees.find(function(e){return e.id===empId});
+  if(!emp)return;
+  if(emp.kpis&&emp.kpis.some(function(k){return k.name===name}))return toast('KPI existiert bereits');
+  if(!emp.kpis)emp.kpis=[];
+  emp.kpis.push({name:name,target:target});
+  save();renderEmpDetail(empId);toast('KPI hinzugefügt');
+}
+
+function deleteEmpKpi(empId,idx){
+  var emp=app.employees.find(function(e){return e.id===empId});
+  if(!emp)return;
+  var removed=emp.kpis[idx].name;
+  emp.kpis.splice(idx,1);
+  /* Remove values for this KPI */
+  for(var yr in emp.values){for(var mo in emp.values[yr]){delete emp.values[yr][mo][removed]}}
+  save();renderEmpDetail(empId);toast('KPI gelöscht');
+}
+
+/* SETTINGS */
+function renderSettings(){
+  var now=new Date(),years=[now.getFullYear()-2,now.getFullYear()-1,now.getFullYear(),now.getFullYear()+1];
+  var sel=$('#settingsYear');sel.innerHTML='';
+  years.forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;if(y===app.year)o.selected=true;sel.appendChild(o)});
+  $('#settingsKpis').value=app.kpiMode||'multi';$('#settingsTheme').value=app.theme||'light';
+}
+$('#settingsYear').addEventListener('change',function(){app.year=parseInt(this.value);localStorage.setItem('mh_year',this.value);toast('Jahr: '+app.year)});
+$('#settingsKpis').addEventListener('change',function(){app.kpiMode=this.value;localStorage.setItem('mh_kpiMode',this.value);toast(app.kpiMode==='single'?'Nur Umsatz':'Alle KPIs')});
+$('#settingsTheme').addEventListener('change',function(){app.theme=this.value;localStorage.setItem('mh_theme',this.value);applyTheme(this.value)});
+function applyTheme(t){
+  if(t==='dark'){
+    document.documentElement.style.setProperty('--bg','#0f172a');document.documentElement.style.setProperty('--card','#1e293b');
+    document.documentElement.style.setProperty('--header-bg','#1e293b');document.documentElement.style.setProperty('--text','#e2e8f0');
+    document.documentElement.style.setProperty('--surface','#0f172a');document.documentElement.style.setProperty('--border','#334155');
+    document.documentElement.style.setProperty('--muted','#94a3b8');
+  }else{
+    document.documentElement.style.setProperty('--bg','#f0f2f5');document.documentElement.style.setProperty('--card','#fff');
+    document.documentElement.style.setProperty('--header-bg','#fff');document.documentElement.style.setProperty('--text','#111827');
+    document.documentElement.style.setProperty('--surface','#f9fafb');document.documentElement.style.setProperty('--border','#e5e7eb');
+    document.documentElement.style.setProperty('--muted','#6b7280');
+  }
+  /* Update chart colors on theme change */
+  if(kpiChart&&typeof Chart!=='undefined'){
+    var isDark=t==='dark';
+    kpiChart.options.plugins.legend.labels.color=isDark?'#e2e8f0':'#111827';
+    kpiChart.options.scales.x.ticks.color=isDark?'#94a3b8':'#6b7280';
+    kpiChart.options.scales.y.ticks.color=isDark?'#94a3b8':'#6b7280';
+    kpiChart.options.scales.x.grid.color=isDark?'#334155':'#e5e7eb';
+    kpiChart.options.scales.y.grid.color=isDark?'#334155':'#e5e7eb';
+    kpiChart.update();
+  }
+}
+function confirmDeleteAllData(){
+  if(!confirm('Alle Daten unwiderruflich l\u00f6schen?'))return;
+  app.employees=[];save();goTo('dashboard');toast('Alle Daten gel\u00f6scht');
+}
+function createDemoData(){
+  if(!confirm('Demo-Daten erstellen?\nBestehende Mitarbeiterdaten werden ersetzt.'))return;
+  var mV=function(){
+    return{
+      '1':{Umsatz:9200,Neukunden:11},'2':{Umsatz:10800,Neukunden:13},
+      '3':{Umsatz:8700,Neukunden:9},'4':{Umsatz:10200,Neukunden:12},
+      '5':{Umsatz:11500,Neukunden:14},'6':{Umsatz:9800,Neukunden:10},
+      '7':{Umsatz:10400,Neukunden:11},'8':{Umsatz:11200,Neukunden:13},
+      '9':{Umsatz:9600,Neukunden:10},'10':{Umsatz:10600,Neukunden:12},
+      '11':{Umsatz:10100,Neukunden:11},'12':{Umsatz:11800,Neukunden:14}
+    }
+  };
+  var jV=function(){
+    return{
+      '1':{Umsatz:8400,Neukunden:9},'2':{Umsatz:9100,Neukunden:10},
+      '3':{Umsatz:7800,Neukunden:8},'4':{Umsatz:8900,Neukunden:11},
+      '5':{Umsatz:9400,Neukunden:10},'6':{Umsatz:8600,Neukunden:9},
+      '7':{Umsatz:9200,Neukunden:10},'8':{Umsatz:8800,Neukunden:9},
+      '9':{Umsatz:9600,Neukunden:11},'10':{Umsatz:8500,Neukunden:8},
+      '11':{Umsatz:9000,Neukunden:10},'12':{Umsatz:8700,Neukunden:9}
+    }
+  };
+  var aV=function(){
+    return{
+      '1':{Umsatz:0,Neukunden:0},'2':{Umsatz:0,Neukunden:0},
+      '3':{Umsatz:9800,Neukunden:12},'4':{Umsatz:10500,Neukunden:13},
+      '5':{Umsatz:11200,Neukunden:14},'6':{Umsatz:10800,Neukunden:12},
+      '7':{Umsatz:9600,Neukunden:10},'8':{Umsatz:10200,Neukunden:11},
+      '9':{Umsatz:11000,Neukunden:13},'10':{Umsatz:10400,Neukunden:12},
+      '11':{Umsatz:10800,Neukunden:11},'12':{Umsatz:11500,Neukunden:14}
+    }
+  };
+  var xV=function(){
+    return{
+      '1':{Umsatz:10200,Neukunden:12},'2':{Umsatz:9600,Neukunden:10},
+      '3':{Umsatz:8800,Neukunden:9},'4':{Umsatz:9200,Neukunden:11},
+      '5':{Umsatz:10400,Neukunden:12},'6':{Umsatz:10800,Neukunden:13},
+      '7':{Umsatz:9400,Neukunden:10},'8':{Umsatz:0,Neukunden:0},
+      '9':{Umsatz:0,Neukunden:0},'10':{Umsatz:0,Neukunden:0},
+      '11':{Umsatz:0,Neukunden:0},'12':{Umsatz:0,Neukunden:0}
+    }
+  };
+  app.employees=[
+    {id:genId(),name:'Emma M\u00fcller',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202612,values:{'2026':mV()}},
+    {id:genId(),name:'Jan Schmidt',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202612,values:{'2026':jV()}},
+    {id:genId(),name:'Anna Becker',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202603,endMonth:202612,values:{'2026':aV()}},
+    {id:genId(),name:'Max Fischer',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202607,values:{'2026':xV()}}
+  ];
+  save();goTo('dashboard');toast('Demo-Daten Variante 1 erstellt');
+}
+function createDemoDataHalf(){
+  if(!confirm('Demo-Daten Variante 2 erstellen?\nBestehende Mitarbeiterdaten werden ersetzt.\nAlle Mitarbeiter: Jan\u2013Jun.') )return;
+  var mV=function(){
+    return{
+      '1':{Umsatz:9200,Neukunden:11},'2':{Umsatz:10800,Neukunden:13},
+      '3':{Umsatz:8700,Neukunden:9},'4':{Umsatz:10200,Neukunden:12},
+      '5':{Umsatz:11500,Neukunden:14},'6':{Umsatz:9800,Neukunden:10},
+      '7':{Umsatz:0,Neukunden:0},'8':{Umsatz:0,Neukunden:0},
+      '9':{Umsatz:0,Neukunden:0},'10':{Umsatz:0,Neukunden:0},
+      '11':{Umsatz:0,Neukunden:0},'12':{Umsatz:0,Neukunden:0}
+    }
+  };
+  var jV=function(){
+    return{
+      '1':{Umsatz:8400,Neukunden:9},'2':{Umsatz:9100,Neukunden:10},
+      '3':{Umsatz:7800,Neukunden:8},'4':{Umsatz:8900,Neukunden:11},
+      '5':{Umsatz:9400,Neukunden:10},'6':{Umsatz:8600,Neukunden:9},
+      '7':{Umsatz:0,Neukunden:0},'8':{Umsatz:0,Neukunden:0},
+      '9':{Umsatz:0,Neukunden:0},'10':{Umsatz:0,Neukunden:0},
+      '11':{Umsatz:0,Neukunden:0},'12':{Umsatz:0,Neukunden:0}
+    }
+  };
+  var aV=function(){
+    return{
+      '1':{Umsatz:9800,Neukunden:12},'2':{Umsatz:10500,Neukunden:13},
+      '3':{Umsatz:11200,Neukunden:14},'4':{Umsatz:10800,Neukunden:12},
+      '5':{Umsatz:9600,Neukunden:10},'6':{Umsatz:10200,Neukunden:11},
+      '7':{Umsatz:0,Neukunden:0},'8':{Umsatz:0,Neukunden:0},
+      '9':{Umsatz:0,Neukunden:0},'10':{Umsatz:0,Neukunden:0},
+      '11':{Umsatz:0,Neukunden:0},'12':{Umsatz:0,Neukunden:0}
+    }
+  };
+  var xV=function(){
+    return{
+      '1':{Umsatz:10200,Neukunden:12},'2':{Umsatz:9600,Neukunden:10},
+      '3':{Umsatz:8800,Neukunden:9},'4':{Umsatz:9200,Neukunden:11},
+      '5':{Umsatz:10400,Neukunden:12},'6':{Umsatz:10800,Neukunden:13},
+      '7':{Umsatz:0,Neukunden:0},'8':{Umsatz:0,Neukunden:0},
+      '9':{Umsatz:0,Neukunden:0},'10':{Umsatz:0,Neukunden:0},
+      '11':{Umsatz:0,Neukunden:0},'12':{Umsatz:0,Neukunden:0}
+    }
+  };
+  app.employees=[
+    {id:genId(),name:'Emma M\u00fcller',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202606,values:{'2026':mV()}},
+    {id:genId(),name:'Jan Schmidt',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202606,values:{'2026':jV()}},
+    {id:genId(),name:'Anna Becker',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202606,values:{'2026':aV()}},
+    {id:genId(),name:'Max Fischer',status:'aktiv',kpis:[{name:'Umsatz',target:120000,unit:'eur'},{name:'Neukunden',target:120,unit:'stk'}],startMonth:202601,endMonth:202606,values:{'2026':xV()}}
+  ];
+  save();goTo('dashboard');toast('Demo-Daten Variante 2 erstellt');
+}
+
+
+/* IMPORT / EXPORT */
+function exportData(){
+  var blob=new Blob([JSON.stringify(app.employees,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='metrichub_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);toast('Export gestartet');
+}
+function importData(){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='.json';
+  inp.onchange=function(e){
+    var f=e.target.files[0];
+    if(!f)return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{
+        var d=JSON.parse(ev.target.result);
+        if(!Array.isArray(d))throw 0;
+        if(confirm('Alle Daten werden \u00fcberschrieben.')){
+          app.employees=d;
+          app.employees.forEach(function(emp){if(!('status' in emp))emp.status='aktiv'});
+          save();
+          toast('Import erfolgreich');
+          goTo('dashboard');
+        }
+      }catch(err){toast('Ung\u00fcltige Datei');}
+    };
+    r.readAsText(f);
   };
   inp.click();
 }
-
-$('#exportBtn').addEventListener('click', exportData);
-$('#importBtn').addEventListener('click', importData);
-
-/* ================= TABS ================= */
-$$('nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.dataset.tab === 'dashboard' || btn.dataset.tab === 'employees' || btn.dataset.tab === 'entry' || btn.dataset.tab === 'ranking') {
-      $$('#nav button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      $$('.tab').forEach(t => t.classList.remove('active'));
-      $('#tab-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'dashboard') initializeDashboard();
-      if (btn.dataset.tab === 'employees') renderEmpList();
-      if (btn.dataset.tab === 'entry') populateEntrySelectors();
-      if (btn.dataset.tab === 'ranking') populateRankSelectors();
-    }
+function exportCSV(){
+  var employees=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)});
+  var csv='Mitarbeiter';for(var m=1;m<=12;m++)csv+=','+MONTHS[m-1];csv+=',Summe,Ziel,%\n';
+  employees.forEach(function(emp){
+    var row='"'+emp.name+'"',sum=0;
+    var yearTarget=0;(emp.kpis||[]).forEach(function(k){yearTarget+=(parseFloat(k.target)||0)});
+    for(var m=1;m<=12;m++){var val=getTotalForMonth(emp,app.year,m);row+=','+(val||'');sum+=val}
+    var pct=yearTarget?Math.round(sum/yearTarget*100):0;csv+=row+','+sum+','+Math.round(yearTarget)+','+pct+'\n';
   });
-});
-
-/* ================= DASHBOARD ================= */
-function initializeDashboard() {
-  fillYears('#dashYear');
-  const allKpiNames = [...new Set(employees.flatMap(e => e.kpis.map(k => k.name)))];
-  fillSelect('#dashKpi', allKpiNames.map(k => ({ v: k, l: k })));
-  if (allKpiNames.length) $('#dashKpi').value = allKpiNames[0];
-  renderDashboardTable();
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='metrichub_'+app.year+'.csv';a.click();URL.revokeObjectURL(a.href);toast('CSV Export gestartet');
 }
 
-function renderDashboardTable() {
-  const yr = $('#dashYear').value;
-  const kpiName = $('#dashKpi').value;
-  const tbl = $('#dashTable');
-  const sum = $('#dashSummary');
-  if (!yr || !kpiName || !employees.length) {
-    tbl.innerHTML = '<div class="empty">Keine Daten.</div>';
-    sum.innerHTML = '';
-    return;
-  }
+/* DRUCKANSICHT - A4 Aushang */
+function printAushang(){
+  var employees=app.employees.filter(function(e){return isActiveInMonth(e,app.year,app.month)});
+  if(!employees.length)return toast('Keine aktiven Mitarbeiter');
 
-  const now = getNow();
-  const curMonth = now.m;
-  const progress = curMonth / 12;
-  const monthLabels = MONTHS.map(m => m.replace(/^\d+ - /, '').slice(0, 3));
+  var kpiFilter=app.dashKpi||'alle';
+  var kpiUnit='stk';
+  for(var ui=0;ui<employees.length;ui++){var kk=employees[ui].kpis||[];for(var kj=0;kj<kk.length;kj++){if(kpiFilter==='alle'||kk[kj].name===kpiFilter){kpiUnit=kk[kj].unit||'stk';break}}if(kpiUnit!=='stk')break}
 
-  let html = '<thead><tr><th class="name-col">Mitarbeiter</th>';
-  for (let i = 1; i <= 12; i++) html += '<th class="month-col">' + monthLabels[i - 1] + '</th>';
-  html += '<th class="total-col">Summe</th><th class="target-col">Ziel</th><th class="pct-col">%</th><th class="sol-col">Im Soll</th></tr></thead><tbody>';
+  /* Kumulation bis zum im Dashboard gewählten Monat */
+  var lastMoWith=app.month;
 
-  let grandTotal = 0, grandTarget = 0;
-  const activeEmployees = employees.filter(e => e.status === 'aktiv');
-  const inactiveEmployees = employees.filter(e => e.status === 'inaktiv');
+  var kpiLabel=kpiFilter==='alle'?'Alle KPIs':kpiFilter;
 
-  activeEmployees.forEach(emp => {
-    const kpi = emp.kpis.find(k => k.name === kpiName);
-    const target = kpi ? kpi.target : 0;
-    if (target > 0) grandTarget += target;
-    html += '<tr><td class="name-col">' + esc(emp.name) + '</td>';
-    let rowSum = 0;
-    for (let m = 1; m <= 12; m++) {
-      const hasValue = emp.values?.[yr]?.[m]?.[kpiName] !== undefined;
-      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
-      if (hasValue && val > 0) rowSum += val;
-      const sollBis = target / 12 * m; // Jahresziel / 12 * Monat
-      let cls = '';
-      // Färben wenn Wert vorhanden: basierend auf kumuliertem Soll-Vergleich
-      if (hasValue && val > 0) {
-        if (sollBis > 0 && rowSum >= sollBis) cls = 'cell-good';
-        else cls = 'cell-bad';
+  var html='<div id="printArea">';
+  html+='<div class="print-header"><h1>MetricHub – '+esc(kpiLabel)+' '+app.year+'</h1>';
+  html+='<p>Stand: '+MONTHS[lastMoWith-1]+' '+app.year+' &nbsp;|&nbsp; Ausgedruckt: '+new Date().toLocaleDateString('de-DE')+'</p></div>';
+
+  employees.sort(function(a,b){
+    var ta=0,tb=0;
+    (a.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)ta+=(parseFloat(k.target)||0)/12});
+    (b.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)tb+=(parseFloat(k.target)||0)/12});
+    var sa=0,sb=0;
+    for(var m=1;m<=lastMoWith;m++){
+      var va=a.values&&a.values[String(app.year)]&&a.values[String(app.year)][String(m)]||{};
+      var vb=b.values&&b.values[String(app.year)]&&b.values[String(app.year)][String(m)]||{};
+      (a.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sa+=(parseFloat(va[k.name])||0)});
+      (b.kpis||[]).forEach(function(k){if(!kpiFilter||k.name===kpiFilter)sb+=(parseFloat(vb[k.name])||0)});
+    }
+    var pa=ta?Math.round(sa/(ta*lastMoWith)*100):0;
+    var pb=tb?Math.round(sb/(tb*lastMoWith)*100):0;
+    return pb-pa;
+  });
+
+  employees.forEach(function(emp){
+    var kpis=(emp.kpis||[]).filter(function(k){return !kpiFilter||k.name===kpiFilter});
+    if(!kpis.length)kpis=emp.kpis||[];
+    if(!kpis.length)return;
+
+    var yearTarget=0;kpis.forEach(function(k){yearTarget+=(parseFloat(k.target)||0)});
+    var mtlTarget=yearTarget/12;
+
+    /* Berechne Ist-Werte pro Monat */
+    var rows=kpis.map(function(k){
+      var kpiYearTarget=parseFloat(k.target)||0;
+      var kpiMtlTarget=kpiYearTarget/12;
+      var kpiTotalReached=0;
+      var monthVals=[];
+      for(var m=1;m<=12;m++){
+        var v=emp.values&&emp.values[String(app.year)]&&emp.values[String(app.year)][String(m)]||{};
+        var val=parseFloat(v[k.name])||0;
+        monthVals.push(val);
+        kpiTotalReached+=val;
       }
-      html += '<td class="' + cls + '">' + (val ? round(val) : '') + '</td>';
-    }
-    grandTotal += rowSum;
-    const pct = target ? Math.round(rowSum / target * 100) : 0;
-    const sollBisNow = target / 12 * curMonth;
-    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
-    html += '<td class="total-col">' + round(rowSum) + '</td>';
-    html += '<td class="target-col">' + round(target) + '</td>';
-    html += '<td class="pct-col' + (pct >= 100 ? ' cell-good' : pct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + pct + '%</td>';
-    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
-  });
-
-  // Inactive employees (greyed out)
-  inactiveEmployees.forEach(emp => {
-    const kpi = emp.kpis.find(k => k.name === kpiName);
-    const target = kpi ? kpi.target : 0;
-    html += '<tr style="opacity:.5"><td class="name-col">' + esc(emp.name) + ' <em style="color:var(--muted)">(inaktiv)</em></td>';
-    let rowSum = 0;
-    for (let m = 1; m <= 12; m++) {
-      const val = emp.values?.[yr]?.[m]?.[kpiName] || 0;
-      rowSum += val;
-      html += '<td>' + (val ? round(val) : '') + '</td>';
-    }
-    grandTotal += rowSum;
-    const pct = target ? Math.round(rowSum / target * 100) : 0;
-    const sollBisNow = target / 12 * curMonth;
-    const imSoll = sollBisNow > 0 && rowSum >= sollBisNow;
-    html += '<td class="total-col">' + round(rowSum) + '</td>';
-    html += '<td class="target-col">' + round(target) + '</td>';
-    html += '<td class="pct-col">' + pct + '%</td>';
-    html += '<td style="text-align:center">' + (imSoll ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
-  });
-
-  // Gesamt row
-  if (grandTarget > 0) {
-    const grandPct = Math.round(grandTotal / grandTarget * 100);
-    const imSollGesamt = (grandTarget / 12 * curMonth) > 0 && grandTotal >= grandTarget / 12 * curMonth;
-    html += '<tr class="sub-header"><td class="name-col">GESAMT</td>';
-    let runSum = 0;
-    for (let m = 1; m <= 12; m++) {
-      runSum += (grandTarget / 12);
-      html += '<td style="color:var(--muted)">' + round(grandTarget / 12) + '</td>';
-    }
-    html += '<td class="total-col">' + round(grandTotal) + '</td>';
-    html += '<td class="target-col">' + round(grandTarget) + '</td>';
-    html += '<td class="pct-col' + (grandPct >= 100 ? ' cell-good' : grandPct >= 50 ? ' cell-ok' : ' cell-bad') + '">' + grandPct + '%</td>';
-    html += '<td style="text-align:center">' + (imSollGesamt ? '<span class="badge badge-g">Ja</span>' : '<span class="badge badge-r">Nein</span>') + '</td></tr>';
-  }
-
-  html += '</tbody>';
-  tbl.innerHTML = html;
-
-  // Summary
-  const sollBis = grandTarget * progress;
-  sum.innerHTML =
-    '<div class="dash-summary-item"><div class="dash-summary-val" style="color:' + (grandPct >= 100 ? 'var(--green)' : 'var(--red)') + '">' + grandPct + '%</div><div class="dash-summary-label">Erfüllung</div></div>' +
-    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal) + '</div><div class="dash-summary-label">Erreicht</div></div>' +
-    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTarget) + '</div><div class="dash-summary-label">Jahresziel</div></div>' +
-    '<div class="dash-summary-item"><div class="dash-summary-val">' + round(grandTotal - sollBis) + '</div><div class="dash-summary-label">Abweichung zum Soll (' + round(sollBis) + ')</div></div>';
-}
-
-$('#dashYear').addEventListener('change', renderDashboardTable);
-$('#dashKpi').addEventListener('change', renderDashboardTable);
-
-/* ================= EMPLOYEE MGMT ================= */
-function renderEmpList() {
-  const c = $('#empList');
-  if (!employees.length) { c.innerHTML = '<div class="empty">Noch keine Mitarbeiter angelegt.</div>'; return; }
-
-  let html = '';
-  employees.forEach(emp => {
-    const kpiTags = emp.kpis.map((k, i) =>
-      `<span class="kpi-tag">${esc(k.name)} (Ziel: ${k.target})<span class="del" data-emp="${emp.id}" data-i="${i}">&times;</span></span>`
-    ).join('');
-    const sLabel = emp.status === 'aktiv'
-      ? '<span class="badge badge-g" style="cursor:pointer" data-status="' + emp.id + '">aktiv</span>'
-      : '<span class="badge badge-r" style="cursor:pointer" data-status="' + emp.id + '">inaktiv</span>';
-
-    html += `<div class="card" style="opacity:${emp.status === 'inaktiv' ? '.55' : '1'}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-        <strong>${esc(emp.name)}</strong>
-        <div style="display:flex;gap:6px;align-items:center">
-          ${sLabel}
-          <button class="btn btn-danger btn-sm" data-del="${emp.id}">Löschen</button>
-        </div>
-      </div>
-      <div style="margin-bottom:10px">${kpiTags || '<span style="color:var(--muted);font-size:.85rem">Keine KPIs definiert</span>'}</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>KPI Name</label>
-          <input type="text" id="kpiName_${emp.id}" placeholder="z.B. Umsatz">
-        </div>
-        <div class="form-group">
-          <label>Jahresziel</label>
-          <input type="number" id="kpiTarget_${emp.id}" placeholder="1000">
-        </div>
-        <button class="btn btn-primary btn-sm" data-add-kpi="${emp.id}">+</button>
-      </div>
-    </div>`;
-  });
-  c.innerHTML = html;
-}
-
-function addEmployee() {
-  const name = $('#empName').value.trim();
-  if (!name) return alert('Name ausfüllen.');
-  const status = $('#empStatus').value;
-  employees.push({ id: genId(), name, status, kpis: [], values: {} });
-  $('#empName').value = '';
-  save(); renderEmpList();
-}
-
-function addKpi(empId) {
-  const nameInput = $('#kpiName_' + empId);
-  const targetInput = $('#kpiTarget_' + empId);
-  const name = nameInput.value.trim();
-  const target = parseFloat(targetInput.value) || 0;
-  if (!name) return alert('KPI-Name ausfüllen.');
-  const emp = employees.find(e => e.id === empId);
-  if (emp.kpis.some(k => k.name === name)) return alert('KPI existiert bereits.');
-  emp.kpis.push({ name, target });
-  nameInput.value = '';
-  targetInput.value = '';
-  save(); renderEmpList();
-}
-
-function removeKpi(empId, idx) {
-  const emp = employees.find(e => e.id === empId);
-  const removed = emp.kpis[idx].name;
-  emp.kpis.splice(idx, 1);
-  for (const yr in emp.values) {
-    for (const mo in emp.values[yr]) {
-      delete emp.values[yr][mo][removed];
-    }
-  }
-  save(); renderEmpList();
-}
-
-function deleteEmp(id) {
-  if (!confirm('Mitarbeiter wirklich löschen?')) return;
-  employees = employees.filter(e => e.id !== id);
-  save(); renderEmpList();
-}
-
-function toggleStatus(id) {
-  const emp = employees.find(e => e.id === id);
-  emp.status = emp.status === 'aktiv' ? 'inaktiv' : 'aktiv';
-  save(); renderEmpList();
-}
-
-$('#empList').addEventListener('click', e => {
-  if (e.target.dataset.del) deleteEmp(e.target.dataset.del);
-  if (e.target.dataset.addKpi) addKpi(e.target.dataset.addKpi);
-  if (e.target.dataset.emp) removeKpi(e.target.dataset.emp, +e.target.dataset.i);
-  if (e.target.dataset.status) toggleStatus(e.target.dataset.status);
-});
-
-$('#addEmpBtn').addEventListener('click', addEmployee);
-
-/* ================= ENTRY ================= */
-function populateEntrySelectors() {
-  fillSelect('#entryEmp', employees.filter(e => e.status === 'aktiv').map(e => ({ v: e.id, l: e.name })));
-  fillYears('#entryYear');
-  fillMonths('#entryMonth');
-  renderEntryTable();
-}
-
-function renderEntryTable() {
-  const empId = $('#entryEmp').value;
-  const yr = $('#entryYear').value;
-  const mo = $('#entryMonth').value;
-  const c = $('#entryTable');
-  if (!empId || !yr || !mo) { c.innerHTML = '<div class="empty">Bitte alle Felder auswählen.</div>'; return; }
-
-  const emp = employees.find(e => e.id === empId);
-  if (!emp.kpis.length) { c.innerHTML = '<div class="empty">Keine KPIs für diesen Mitarbeiter definiert.</div>'; return; }
-
-  const vals = emp.values?.[yr]?.[mo] || {};
-
-  let html = '<table><thead><tr><th style="text-align:left">KPI</th><th>Jahresziel</th><th>Wert</th><th>Summe (Jan\u2013' + MONTHS[+mo - 1] + ')</th><th>Erfüllung</th></tr></thead><tbody>';
-  emp.kpis.forEach(kpi => {
-    const val = vals[kpi.name] ?? '';
-    let runSum = 0;
-    for (let m = 1; m <= 12; m++) {
-      runSum += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
-    }
-    const pct = kpi.target ? Math.round(runSum / kpi.target * 100) : 0;
-    const badge = pct >= 100 ? 'badge-g' : 'badge-r';
-
-    html += `<tr>
-      <td style="text-align:left;font-weight:500">${esc(kpi.name)}</td>
-      <td>${kpi.target}</td>
-      <td><input type="number" class="entry-input" data-kpi="${esc(kpi.name)}" value="${val}" min="0" step="any"></td>
-      <td>${runSum}</td>
-      <td><span class="badge ${badge}">${pct}%</span></td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  c.innerHTML = html;
-}
-
-$('#entryEmp').addEventListener('change', renderEntryTable);
-$('#entryYear').addEventListener('change', renderEntryTable);
-$('#entryMonth').addEventListener('change', renderEntryTable);
-
-$('#saveEntryBtn').addEventListener('click', () => {
-  const empId = $('#entryEmp').value;
-  const yr = $('#entryYear').value;
-  const mo = $('#entryMonth').value;
-  if (!empId || !yr || !mo) return alert('Bitte alle Felder auswählen.');
-
-  const emp = employees.find(e => e.id === empId);
-  emp.values[yr] ||= {};
-  emp.values[yr][mo] ||= {};
-
-  $$('.entry-input').forEach(inp => {
-    emp.values[yr][mo][inp.dataset.kpi] = parseFloat(inp.value) || 0;
-  });
-
-  save();
-  renderEntryTable();
-  alert('Werte gespeichert!');
-});
-
-/* ================= RANKING ================= */
-let rankDesc = true;
-
-function populateRankSelectors() {
-  fillYears('#rankYear');
-  fillMonths('#rankMonth', true);
-}
-
-function calcScores(yr, mo) {
-  const results = [];
-  employees.forEach(emp => {
-    if (!emp.kpis.length) return;
-    let totalPct = 0, count = 0;
-
-    emp.kpis.forEach(kpi => {
-      let achieved = 0;
-      if (mo) {
-        // single month: show value for that month vs monthly target (annual target / 12)
-        achieved = emp.values?.[yr]?.[mo]?.[kpi.name] || 0;
-        const monthlyTarget = kpi.target / 12;
-        const pct = monthlyTarget > 0 ? achieved / monthlyTarget * 100 : 0;
-        totalPct += pct;
-      } else {
-        // full year
-        for (let m = 1; m <= 12; m++) {
-          achieved += emp.values?.[yr]?.[m]?.[kpi.name] || 0;
-        }
-        const pct = kpi.target > 0 ? achieved / kpi.target * 100 : 0;
-        totalPct += pct;
-      }
-      count++;
+      var kpiReachedM=0;for(var m=1;m<=lastMoWith;m++)kpiReachedM+=monthVals[m-1];
+      var kpiTargetM=kpiMtlTarget*lastMoWith;
+      var kpiPct=kpiTargetM?Math.round(kpiReachedM/kpiTargetM*100):0;
+      var kpiDiff=kpiReachedM-kpiTargetM;
+      var cls=kpiPct>=100?'ok':kpiPct>=50?'warn':'bad';
+      var u=k.unit||kpiUnit;
+      return{name:k.name,unit:u,target:kpiYearTarget,mtlTarget:kpiMtlTarget,months:monthVals,total:kpiTotalReached,reachedM:kpiReachedM,targetM:kpiTargetM,diff:kpiDiff,pct:kpiPct,cls:cls};
     });
 
-    const avgPct = count > 0 ? totalPct / count : 0;
-    results.push({ emp, score: avgPct, kpisCount: count });
+    var totalReached=0;rows.forEach(function(r){totalReached+=r.reachedM});
+    var totalTargetM=mtlTarget*lastMoWith;
+    var totalPct=totalTargetM?Math.round(totalReached/totalTargetM*100):0;
+    var totalDiff=totalReached-totalTargetM;
+
+    var periodName=MONTHS[0]+'-'+MONTHS[lastMoWith-1];
+
+    /* Prüfe ob alle KPIs die gleiche Einheit haben */
+    var allSameUnit=true;
+    if(rows.length>1){var refU=rows[0].unit;for(var ui2=1;ui2<rows.length;ui2++){if(rows[ui2].unit!==refU){allSameUnit=false;break}}}
+
+    html+='<div class="print-emp-summary">';
+    html+='<div><span class="emp-name">'+esc(emp.name)+'</span></div>';
+    html+='<div class="emp-pct" style="color:'+(totalPct>=100?'#16a34a':totalPct>=50?'#ea580c':'#dc2626')+'">'+totalPct+'%'+(totalDiff>=0?'+':'')+fmtVal(totalDiff,kpiUnit)+'</div>';
+    html+='</div>';
+
+    /* Zwischenstand-Zeile – kumulierter Zeitraum */
+    if(allSameUnit){
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6pt;padding:6pt 10pt;margin:5pt 0;background:'+(totalPct>=100?'#f0fdf4':totalPct>=50?'#fff7ed':'#fef2f2')+';border-radius:4pt;border-left:3pt solid '+(totalPct>=100?'#16a34a':totalPct>=50?'#ea580c':'#dc2626')+'">';
+      html+='<span style="font-weight:700;font-size:9.5pt;color:#111">Zwischenstand '+esc(periodName)+'</span>';
+      html+='<span style="font-size:9pt;color:#444">'+fmtVal(totalReached,kpiUnit)+' von '+fmtVal(Math.round(totalTargetM),kpiUnit)+' &nbsp;<strong style="color:'+(totalDiff>=0?'#16a34a':'#dc2626')+'">'+(totalDiff>=0?'+':'')+fmtVal(totalDiff,kpiUnit)+'</strong></span>';
+      html+='<span style="font-size:12pt;font-weight:800;color:'+(totalPct>=100?'#16a34a':totalPct>=50?'#ea580c':'#dc2626')+'">'+totalPct+'%</span>';
+      html+='</div>';
+    }else{
+      /* Verschiedene Einheiten – pro KPI eine Zwischenstand-Zeile */
+      for(var ri=0;ri<rows.length;ri++){
+        var r2=rows[ri];
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6pt;padding:5pt 10pt;margin:4pt 0;background:'+(r2.pct>=100?'#f0fdf4':r2.pct>=50?'#fff7ed':'#fef2f2')+';border-radius:4pt;border-left:3pt solid '+(r2.pct>=100?'#16a34a':r2.pct>=50?'#ea580c':'#dc2626')+'">';
+        html+='<span style="font-weight:700;font-size:9pt;color:#111;min-width:110pt">'+esc(r2.name)+' '+esc(periodName)+'</span>';
+        html+='<span style="font-size:9pt;color:#444">'+fmtVal(r2.reachedM,r2.unit)+' von '+fmtVal(Math.round(r2.targetM),r2.unit)+' &nbsp;<strong style="color:'+(r2.diff>=0?'#16a34a':'#dc2626')+'">'+(r2.diff>=0?'+':'')+fmtVal(r2.diff,r2.unit)+'</strong></span>';
+        html+='<span style="font-size:12pt;font-weight:800;color:'+(r2.pct>=100?'#16a34a':r2.pct>=50?'#ea580c':'#dc2626')+'">'+r2.pct+'%</span>';
+        html+='</div>';
+      }
+    }
+
+    html+='<table class="print-table"><thead><tr><th></th>';
+    for(var m=1;m<=12;m++)html+='<th>'+MONTHS[m-1].substr(0,3)+'</th>';
+    html+='<th>'+esc(kpiUnit==='eur'?'€':'Σ')+'</th><th>Ziel</th><th>Diff</th><th>%</th>';
+    html+='</tr></thead><tbody>';
+
+    rows.forEach(function(r){
+      html+='<tr><td class="kpi-name">'+esc(r.name)+'</td>';
+      for(var m=0;m<12;m++){
+        html+='<td'+(r.months[m]>0?' style="font-weight:600;text-align:right"':' style="color:#ccc;text-align:right"')+'>'+(r.months[m]&&r.months[m]>0?fmtVal(r.months[m],r.unit):'–')+'</td>';
+      }
+      html+='<td style="font-weight:700;text-align:right">'+fmtVal(r.total,r.unit)+'</td>';
+      html+='<td style="text-align:right;color:#666">'+fmtVal(Math.round(r.targetM),r.unit)+'</td>';
+      html+='<td class="'+r.cls+'" style="text-align:right">'+(r.diff>=0?'+':'')+fmtVal(r.diff,r.unit)+'</td>';
+      html+='<td class="'+r.cls+'" style="text-align:right">'+r.pct+'%</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+
+    /* Info-Box */
+    html+='<div style="margin-top:8pt;padding:6pt 10pt;border:1pt solid #ddd;border-radius:4pt;font-size:9pt">';
+    if(totalPct>=100){html+='<span class="ok">&#10004; Gut im Plan!</span>';
+    }else if(totalPct>=50){
+      var deficit=totalTargetM-totalReached;
+      var remaining=12-lastMoWith;
+      var mtlNeeded=remaining>0?deficit/remaining:deficit;
+      html+='<span class="warn">&#9888; Noch '+fmtVal(deficit,kpiUnit)+' Rückstand';
+      if(remaining>0)html+=' &ndash; pro Monat noch +'+fmtVal(mtlNeeded,kpiUnit)+' aufholen';
+      html+='</span>';
+    }else if(mtlTarget>0){
+      html+='<span class="bad">&#9888; Signifikanter Rückstand – '+fmtVal(totalTargetM-totalReached,kpiUnit)+' fehlen</span>';
+    }
+    html+=' &nbsp;|&nbsp; Jahresziel: <strong>'+fmtVal(yearTarget,kpiUnit)+'</strong>';
+    html+='</div>';
   });
 
-  results.sort((a, b) => rankDesc ? b.score - a.score : a.score - b.score);
-  return results;
+  html+='<div class="print-footer">MetricHub KPI-Tracking &ndash; '+app.year+'</div>';
+  html+='</div>';
+
+  /* Print */
+  var pa=$('#printArea');
+  pa.innerHTML=html;
+  pa.style.display='block';
+  window.print();
+  setTimeout(function(){pa.style.display='none'},500);
 }
 
-function renderRanking() {
-  const yr = $('#rankYear').value;
-  const mo = $('#rankMonth').value;
-  const c = $('#rankList');
-  if (!yr) { c.innerHTML = '<div class="empty">Jahr auswählen.</div>'; return; }
+/* EMPLOYEE DASHBOARD */
+var empDashEmpId='alle';
+var empDashYear=new Date().getFullYear();
+var empDashMonth=new Date().getMonth()+1;
+var empDashKpi='Umsatz';
+var empDashChartInst=null;
 
-  const results = calcScores(yr, mo);
-  if (!results.length) { c.innerHTML = '<div class="empty">Keine Daten vorhanden.</div>'; return; }
+function pickEmpDashKpi(val){empDashKpi=val;localStorage.setItem('empDashKpi',val);renderEmpDash()}
+function getEmpDashUnit(active,fkpi){for(var i=0;i<active.length;i++){var kpis=fkpi?active[i].kpis.filter(function(k){return k.name===fkpi}):active[i].kpis||[];for(var j=0;j<kpis.length;j++){if(kpis[j].unit)return kpis[j].unit}}return'stk'}
 
-  let html = '';
-  results.forEach((r, idx) => {
-    const fillPct = Math.min(r.score, 100);
-    const barColor = r.score >= 100 ? 'var(--green)' : r.score >= 50 ? 'var(--gold)' : 'var(--red)';
-    const sTag = r.emp.status === 'inaktiv' ? ' <span class="badge badge-r">inaktiv</span>' : '';
-
-    html += `<div class="rank-row rank-${idx + 1}">
-      <div class="rank-num">${idx + 1}</div>
-      <div class="rank-info">
-        <div class="rank-name">${esc(r.emp.name)}${sTag}</div>
-        <div class="rank-detail">Ø Erfüllung: ${r.score.toFixed(1)}% (${r.kpisCount} KPIs)</div>
-        <div class="rank-bar"><div class="rank-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
-      </div>
-    </div>`;
+function renderEmpDash(){
+  var mc=$('#empDashMonths');mc.innerHTML='';
+  MONTHS.forEach(function(m,i){
+    var btn=document.createElement('button');btn.className='month-btn'+((i+1===empDashMonth)?' active':'');
+    btn.textContent=m;
+    btn.onclick=(function(idx){return function(){empDashMonth=idx+1;localStorage.setItem('empDashMonth',idx+1);renderEmpDash()};})(i);
+    mc.appendChild(btn);
   });
-  c.innerHTML = html;
-}
 
-$('.sort-best').addEventListener('click', function() {
-  rankDesc = true;
-  this.classList.add('active');
-  $('.sort-worst').classList.remove('active');
-  renderRanking();
-});
-$('.sort-worst').addEventListener('click', function() {
-  rankDesc = false;
-  this.classList.add('active');
-  $('.sort-best').classList.remove('active');
-  renderRanking();
-});
-$('#rankGoBtn').addEventListener('click', renderRanking);
-
-/* ================= HELPERS ================= */
-function fillSelect(sel, items) {
-  const el = $(sel);
-  el.innerHTML = items.map(i => `<option value="${i.v}">${esc(i.l)}</option>`).join('');
-}
-
-function fillYears(sel) {
-  const now = new Date().getFullYear();
-  const items = Array.from({ length: 7 }, (_, i) => {
-    const y = now - 3 + i;
-    return { v: y, l: y };
-  });
-  fillSelect(sel, items);
-  $(sel).value = now;
-}
-
-function fillMonths(sel, empty) {
-  const now = new Date().getMonth() + 1;
-  const items = empty ? [{ v: '', l: 'Gesamtjahr' }] : [];
-  MONTHS.forEach((name, i) => items.push({ v: i + 1, l: name }));
-  fillSelect(sel, items);
-  if (empty) {
-    // keep old value for ranking (Gesamtjahr), or default to Gesamtjahr
-  } else {
-    $(sel).value = now;
+  var active=app.employees.filter(function(e){return isActiveInMonth(e,empDashYear,empDashMonth)});
+  var kf=$('#empDashFilter');
+  if(!active.length){
+    if(kf)kf.innerHTML='';
+    $('#empDashContent').innerHTML='<div class="empty-state" style="padding-top:40px"><div class="empty-icon">&#128100;</div><p>Keine aktiven Mitarbeiter</p></div>';
+    return;
   }
+  if(kf){
+    var fh='<label>Mitarbeiter</label><select id="empDashSel" onchange="empDashEmpId=this.value;localStorage.setItem(\'empDashEmpId\',this.value);renderEmpDash()">';
+    fh+='<option value="alle">Bitte Mitarbeiter ausw\u00e4hlen</option>';
+    active.forEach(function(e){
+      fh+='<option value="'+e.id+'"';
+      if(e.id===empDashEmpId)fh+=' selected';
+      fh+='>'+esc(e.name)+'</option>';
+    });
+    fh+='</select>';kf.innerHTML=fh;
+  }
+
+  /* KPI filter dropdown */
+  var kpiNames=[];
+  active.forEach(function(e){(e.kpis||[]).forEach(function(k){if(kpiNames.indexOf(k.name)===-1)kpiNames.push(k.name)})});
+  var kf2=$('#empDashKpiFilter');if(kf2){
+    var fh2='<label>KPI</label><select onchange="pickEmpDashKpi(this.value)">';
+    kpiNames.forEach(function(n){fh2+='<option value="'+esc(n)+'"'+(empDashKpi===n?' selected':'')+'>'+n+'</option>'});
+    fh2+='</select>';kf2.innerHTML=fh2;
+  }
+  if(kpiNames.indexOf(empDashKpi)===-1&&kpiNames.length)empDashKpi=kpiNames[0];
+
+  if(empDashEmpId==='alle'||!empDashEmpId){renderEmpDashAll(active);return;}
+
+  var emp=null;
+  for(var ei=0;ei<app.employees.length;ei++){if(app.employees[ei].id===empDashEmpId){emp=app.employees[ei];break;}}
+  if(!emp){$('#empDashContent').innerHTML='<div class="empty-state"><p>Nicht gefunden</p></div>';return;}
+
+  var kpis=emp.kpis||[];
+  var yr=String(empDashYear);
+  var mo=String(empDashMonth);
+  var vals={};
+  if(emp.values&&emp.values[yr]&&emp.values[yr][mo]){vals=emp.values[yr][mo];}
+
+  /* Filter KPIs based on selection */
+  var fkpi=(empDashKpi==='alle')?null:empDashKpi;
+  var filteredKpis=fkpi?kpis.filter(function(k){return k.name===fkpi}):kpis;
+  if(!filteredKpis.length)filteredKpis=kpis;
+
+  var unit='stk';
+  if(filteredKpis.length&&filteredKpis[0].unit)unit=filteredKpis[0].unit;
+
+  var totalReached=0;
+  var totalTarget=0;
+  for(var ki=0;ki<filteredKpis.length;ki++){
+    var kn=filteredKpis[ki].name;
+    totalReached+=(parseFloat(vals[kn])||0);
+    totalTarget+=(parseFloat(filteredKpis[ki].target)||0)/12;
+  }
+  var totalDiff=totalReached-totalTarget;
+  var pct=totalTarget?Math.round(totalReached/totalTarget*100):0;
+  var overTarget=0;
+  for(var ki2=0;ki2<filteredKpis.length;ki2++){
+    var v2=parseFloat(vals[filteredKpis[ki2].name])||0;
+    var tg2=(parseFloat(filteredKpis[ki2].target)||0)/12;
+    if(tg2&&v2>=tg2)overTarget++;
+  }
+
+  var diffClr=totalDiff>=0?'#16a34a':'#dc2626';
+  var cardCls=pct>=100?' summary-card green':'';
+  var otCls=(overTarget===filteredKpis.length&&filteredKpis.length>0)?' summary-card green':'';
+  var kpiLabel=empDashKpi==='alle'?'KPIs im Ziel':empDashKpi+' im Ziel';
+
+  var html='<div class="summary-row">';
+  html+='<div class="summary-card'+cardCls+'"><div class="s-label">'+esc(emp.name)+'</div><div class="s-value">'+(totalDiff>=0?'+':'')+pct+'%</div><div class="s-sub" style="color:'+diffClr+'">'+(totalDiff>=0?'+':'')+fmtVal(totalDiff,unit)+'</div></div>';
+  html+='<div class="summary-card"><div class="s-label">Erreicht</div><div class="s-value">'+fmtVal(totalReached,unit)+'</div></div>';
+  html+='<div class="summary-card"><div class="s-label">Ziel im Monat</div><div class="s-value">'+fmtVal(totalTarget,unit)+'</div></div>';
+  html+='<div class="summary-card'+otCls+'"><div class="s-label">'+kpiLabel+'</div><div class="s-value">'+overTarget+'/'+filteredKpis.length+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="card-flat" style="margin-top:20px">';
+  var detailTitle=empDashKpi==='alle'?'KPIs im Detail':'KPI: '+empDashKpi;
+  html+='<div style="padding:16px 20px;font-weight:700;font-size:.9rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">'+detailTitle+' &ndash; '+MONTHS[empDashMonth-1]+' '+empDashYear+'</div>';
+  html+='<table class="kpi-table"><thead><tr><th>KPI</th><th>Ist</th><th>Soll (mtl.)</th><th>Diff</th><th>Erf&uuml;llung</th></tr></thead><tbody>';
+  for(var ki3=0;ki3<filteredKpis.length;ki3++){
+    var k=filteredKpis[ki3];
+    var v=parseFloat(vals[k.name])||0;
+    var tg=(parseFloat(k.target)||0)/12;
+    var df=v-tg;
+    var p=tg?Math.round(v/tg*100):0;
+    var u=k.unit||'stk';
+    var bgC,txC;
+    if(p>=100){bgC='var(--green-bg)';txC='var(--green-text)';}
+    else if(p>=50){bgC='#fff7ed';txC='var(--orange)';}
+    else{bgC='var(--red-bg)';txC='var(--red-text)';}
+    var dfC=df>=0?'var(--green)':'var(--red)';
+    html+='<tr><td class="kpi-name">'+esc(k.name)+'</td>';
+    html+='<td><strong>'+fmtVal(v,u)+'</strong></td>';
+    html+='<td style="color:var(--muted)">'+fmtVal(tg,u)+'</td>';
+    html+='<td style="color:'+dfC+';font-weight:600;text-align:right">'+(df>=0?'+':'')+fmtVal(df,u)+'</td>';
+    html+='<td style="text-align:right"><span style="font-size:.85rem;padding:3px 10px;border-radius:6px;background:'+bgC+';color:'+txC+';font-weight:700">'+p+'%</span></td>';
+    html+='</tr>';
+  }
+  html+='</tbody></table></div>';
+
+  html+='<div class="card" style="margin-top:20px"><canvas id="empDashChart"></canvas></div>';
+  $('#empDashContent').innerHTML=html;
+
+  setTimeout(function(){
+    var canvas=document.getElementById('empDashChart');
+    if(!canvas||typeof Chart==='undefined')return;
+    if(empDashChartInst){empDashChartInst.destroy();empDashChartInst=null;}
+    var labels=MONTHS.slice(0,8);
+    var colors=['#2563eb','#16a34a','#ea580c','#9333ea','#dc2626','#0891b2'];
+    var datasets=[];
+    for(var di=0;di<filteredKpis.length;di++){
+      var dArr=[];
+      for(var dm=1;dm<=8;dm++){
+        var dv=emp.values&&emp.values[String(empDashYear)]&&emp.values[String(empDashYear)][String(dm)];
+        dArr.push(dv?parseFloat(dv[filteredKpis[di].name])||0:0);
+      }
+      datasets.push({label:filteredKpis[di].name,data:dArr,borderColor:colors[di%colors.length],backgroundColor:colors[di%colors.length]+'22',fill:false,tension:0.3,pointRadius:3,pointHitRadius:6,borderWidth:2});
+    }
+    var isDark=app.theme==='dark';
+    var lclr=isDark?'#e2e8f0':'#111827';
+    var tclr=isDark?'#94a3b8':'#6b7280';
+    var gclr=isDark?'#334155':'#e5e7eb';
+    empDashChartInst=new Chart(canvas,{type:'line',data:{labels:labels,datasets:datasets},
+      options:{responsive:true,plugins:{legend:{labels:{color:lclr,font:{size:11},boxWidth:14}}},
+      scales:{x:{ticks:{color:tclr,font:{size:11}},grid:{color:gclr}},y:{ticks:{color:tclr,font:{size:10}},grid:{color:gclr}}}}});
+  },100);
 }
 
-function fillMonths2(sel) {
-  const now = getNow();
-  const items = MONTHS.map((name, i) => ({ v: i + 1, l: name }));
-  fillSelect(sel, items);
-  $(sel).value = now.m;
+function renderEmpDashAll(active){
+  var fkpi=(empDashKpi==='alle')?null:empDashKpi;
+  var totalTarget=0,totalReached=0;
+  for(var ai=0;ai<active.length;ai++){
+    var aemp=active[ai];
+    aemp.kpis=aemp.kpis||[];
+    var akpis=fkpi?aemp.kpis.filter(function(k){return k.name===fkpi}):aemp.kpis;
+    for(var ak=0;ak<akpis.length;ak++){totalTarget+=(parseFloat(akpis[ak].target)||0)/12;}
+    var av2={};
+    if(aemp.values&&aemp.values[String(empDashYear)]&&aemp.values[String(empDashYear)][String(empDashMonth)]){av2=aemp.values[String(empDashYear)][String(empDashMonth)];}
+    for(var ak2=0;ak2<akpis.length;ak2++){totalReached+=(parseFloat(av2[akpis[ak2].name])||0);}
+  }
+  var totalDiff=totalReached-totalTarget;
+  var pct=totalTarget?Math.round(totalReached/totalTarget*100):0;
+
+  var unit=getEmpDashUnit(active,fkpi);
+  var diffClr2=totalDiff>=0?'#16a34a':'#dc2626';
+  var cardCls2=pct>=100?' summary-card green':'';
+
+  var html='<div class="summary-row">';
+  html+='<div class="summary-card'+cardCls2+'"><div class="s-label">Gesamt</div><div class="s-value">'+pct+'%</div><div class="s-sub" style="color:'+diffClr2+'">'+(totalDiff>=0?'+':'')+fmtVal(totalDiff,unit)+'</div></div>';
+  html+='<div class="summary-card"><div class="s-label">Erreicht</div><div class="s-value">'+fmtVal(totalReached,unit)+'</div></div>';
+  html+='<div class="summary-card"><div class="s-label">Gesamtziel</div><div class="s-value">'+fmtVal(totalTarget,unit)+'</div></div>';
+  html+='<div class="summary-card"><div class="s-label">Mitarbeiter</div><div class="s-value">'+active.length+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="card-flat" style="margin-top:20px">';
+  html+='<div style="padding:16px 20px;font-weight:700;font-size:.9rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Rangliste &ndash; '+MONTHS[empDashMonth-1]+' '+empDashYear+'</div>';
+  html+='<div class="emp-table">';
+
+  var scores=[];
+  for(var si=0;si<active.length;si++){
+    var se=active[si];
+    var sv2={};
+    if(se.values&&se.values[String(empDashYear)]&&se.values[String(empDashYear)][String(empDashMonth)]){sv2=se.values[String(empDashYear)][String(empDashMonth)];}
+    var skpis=fkpi?(se.kpis||[]).filter(function(k){return k.name===fkpi}):(se.kpis||[]);
+    var st=0,stg=0;
+    for(var sk=0;sk<skpis.length;sk++){st+=(parseFloat(sv2[skpis[sk].name])||0);stg+=(parseFloat(skpis[sk].target)||0)/12;}
+    var sdf=st-stg;var sp=stg?Math.round(st/stg*100):0;
+    scores.push({emp:se,total:st,target:stg,diff:sdf,pct:sp});
+  }
+  scores.sort(function(a,b){return b.pct-a.pct});
+
+  for(var ri=0;ri<scores.length;ri++){
+    var s=scores[ri];
+    var barColor,bbg,btc;
+    if(s.pct>=100){barColor='var(--green)';bbg='var(--green-bg)';btc='var(--green-text)';}
+    else if(s.pct>=50){barColor='var(--orange)';bbg='#fff7ed';btc='var(--orange)';}
+    else{barColor='var(--red)';bbg='var(--red-bg)';btc='var(--red-text)';}
+    var rnClr=ri<3?'var(--primary)':'var(--border)';
+    var rnTx=ri<3?'#fff':'var(--text)';
+    var dClr=s.diff>=0?'var(--green)':'var(--red)';
+    var eid=scores[ri].emp.id;
+    html+='<div class="emp-list-item" onclick="empDashEmpId=\''+eid+'\';localStorage.setItem(\'empDashEmpId\',\''+eid+'\');renderEmpDash()">';
+    html+='<div style="width:28px;height:28px;border-radius:50%;background:'+rnClr+';color:'+rnTx+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0">'+(ri+1)+'</div>';
+    html+='<div class="top-avatar">'+esc(s.emp.name.charAt(0))+'</div>';
+    html+='<div style="flex:1"><div class="emp-name">'+esc(s.emp.name)+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
+    html+='<span style="font-size:.9rem;font-weight:600">'+fmtVal(s.total,unit)+'</span>';
+    html+='<span style="font-size:.8rem;color:'+dClr+';font-weight:600">'+(s.diff>=0?'+':'')+fmtVal(s.diff,unit)+'</span>';
+    html+='<span style="font-size:.8rem;padding:2px 8px;border-radius:6px;background:'+bbg+';color:'+btc+';font-weight:700">'+s.pct+'%</span>';
+    html+='</div>';
+    if(s.target){html+='<div class="kpi-progress"><div class="kpi-progress-fill" style="width:'+Math.min(s.pct,100)+'%;background:'+barColor+'"></div></div>';}
+    html+='</div><div class="top-chevron">&#187;</div></div>';
+  }
+  html+='</div></div>';
+
+  html+='<div class="card" style="margin-top:20px"><canvas id="empDashChart"></canvas></div>';
+  $('#empDashContent').innerHTML=html;
+
+  setTimeout(function(){
+    var canvas=document.getElementById('empDashChart');
+    if(!canvas||typeof Chart==='undefined')return;
+    if(empDashChartInst){empDashChartInst.destroy();empDashChartInst=null;}
+    var labels=MONTHS.slice(0,8);
+    var colors=['#2563eb','#16a34a','#ea580c','#9333ea','#dc2626','#0891b2','#ca8a04','#4f46e5'];
+    var datasets=[];
+    for(var di2=0;di2<active.length;di2++){
+      var dArr2=[];
+      for(var dm2=1;dm2<=8;dm2++){
+        var v3=active[di2].values&&active[di2].values[String(empDashYear)]&&active[di2].values[String(empDashYear)][String(dm2)]||{};
+        var t3=0;
+        if(fkpi){
+          t3=(parseFloat(v3[fkpi])||0);
+        }else{
+          var kk=Object.keys(v3);
+          for(var dk=0;dk<kk.length;dk++){t3+=(parseFloat(v3[kk[dk]])||0);}
+        }
+        dArr2.push(t3);
+      }
+      datasets.push({label:active[di2].name,data:dArr2,borderColor:colors[di2%colors.length],backgroundColor:colors[di2%colors.length]+'22',fill:false,tension:0.3,pointRadius:3,pointHitRadius:6,borderWidth:2});
+    }
+    var isDark=app.theme==='dark';
+    var lclr=isDark?'#e2e8f0':'#111827';
+    var tclr=isDark?'#94a3b8':'#6b7280';
+    var gclr=isDark?'#334155':'#e5e7eb';
+    empDashChartInst=new Chart(canvas,{type:'line',data:{labels:labels,datasets:datasets},
+      options:{responsive:true,plugins:{legend:{labels:{color:lclr,font:{size:11},boxWidth:14}}},
+      scales:{x:{ticks:{color:tclr,font:{size:11}},grid:{color:gclr}},y:{ticks:{color:tclr,font:{size:10}},grid:{color:gclr}}}}});
+  },100);
 }
 
-const escDiv = document.createElement('div');
-function esc(s) { escDiv.textContent = s; return escDiv.innerHTML; }
-function round(n) { return Math.round(n * 100) / 100; }
+/* INIT */
+function init(){
+  try{var s=localStorage.getItem('mh_kpi');app.employees=s?JSON.parse(s):[]}catch(e){app.employees=[]}
+  app.theme=localStorage.getItem('mh_theme')||'light';
+  app.year=parseInt(localStorage.getItem('mh_year'))||new Date().getFullYear();
+  app.month=parseInt(localStorage.getItem('mh_month'))||new Date().getMonth()+1;
+  app.kpiMode=localStorage.getItem('mh_kpiMode')||'multi';
+  empDashEmpId=localStorage.getItem('empDashEmpId')||'alle';
+  empDashMonth=parseInt(localStorage.getItem('empDashMonth'))||empDashMonth;
+  empDashKpi=localStorage.getItem('empDashKpi')||'Umsatz';
+  app.employees.forEach(function(emp){
+    if(!('status' in emp))emp.status='aktiv';
+    if(!emp.startMonth)emp.startMonth=app.year*100+1;
+    if(!emp.endMonth)emp.endMonth=app.year*100+12;
+  });
+  console.log('Init OK, employees:',app.employees.length);
+  if(app.theme==='dark')applyTheme('dark');goTo('dashboard');
+  /* Welcome-Modal nur bei Erstbesuch (keine Daten im Cache) */
+  if(!app.employees.length){setTimeout(function(){openModal('modalWelcome')},500)}
+}
+init();
 
-/* ================= INIT ================= */
-load();
-initializeDashboard();
 </script>
-
 </body>
 </html>
